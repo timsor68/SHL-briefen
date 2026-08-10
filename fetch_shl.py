@@ -119,9 +119,22 @@ def parse_standings(soup):
             pts = int(cells[8])
         except (ValueError, IndexError):
             pts = 0
+        # Overtime/shootout win-loss and game-winning-shot columns (present on the real
+        # site as extra columns after points: OTW, OTL, GWSW, GWSL) — read defensively
+        # since older cached pages or narrower layouts may not have them.
+        def _int_cell(idx):
+            try:
+                return int(re.sub(r"\D", "", cells[idx]) or 0)
+            except (ValueError, IndexError):
+                return 0
+        otw = _int_cell(9)
+        otl = _int_cell(10)
+        gwsw = _int_cell(11)
+        gwsl = _int_cell(12)
         rows.append({
             "rank": int(rank_digits), "team": team, "gp": gp, "w": w, "t": t, "l": l,
             "gf": gf, "ga": ga, "pts": pts,
+            "otw": otw, "otl": otl, "gwsw": gwsw, "gwsl": gwsl,
         })
     return rows
 
@@ -228,10 +241,11 @@ def parse_schedule_results(soup):
     return unique
 
 
-def parse_player_stat_table(soup, required_words, limit=60):
-    table = find_table_by_headers(soup, required_words)
-    if not table:
-        return []
+def parse_player_stat_table_from_table(table, limit=60):
+    """Same row/column extraction as parse_player_stat_table(), but takes an
+    already-located <table> tag directly — used when a page has more than one
+    matching table (e.g. Powerplay + Penalty Killing on one page) and the caller
+    has already picked the right one out of find_all_tables_by_headers()."""
     header_cells = table.find_all("th")
     if not header_cells:
         first_row = table.find("tr")
@@ -254,6 +268,38 @@ def parse_player_stat_table(soup, required_words, limit=60):
         if len(rows) >= limit:
             break
     return rows
+
+
+def parse_player_stat_table(soup, required_words, limit=60):
+    table = find_table_by_headers(soup, required_words)
+    if not table:
+        return []
+    return parse_player_stat_table_from_table(table, limit=limit)
+
+
+# Extra player leaderboard pages beyond Scoring/Goalies (SVS%). All follow the same
+# "Rk | No | Name | Team | Pos | GP | ..." template as ScoringLeaders, so the generic
+# parse_player_stat_table() works unchanged — only the URL slug and JSON key differ.
+# required_words=["team", "gp"] (rather than the ["player"] used for the original two
+# calls) because those two words are the ones directly confirmed present in every one
+# of these pages' visible column headers.
+EXTRA_SKATER_STAT_PAGES = {
+    "goals": "GoalScoringLeaders",
+    "assists": "AssistLeaders",
+    "plusMinus": "PlusMinusLeaders",
+    "faceoffs": "FaceOffLeaders",
+    "powerplay": "PowerplayLeaders",
+    "shorthanded": "ShorthandedLeaders",
+    "defensemen": "DefensemenLeaders",
+    "penalties": "MostPenPlayers",
+}
+
+# Team-level stat pages with a single, flat (non-nested) header row that the generic
+# parser can handle correctly. Attendance and (team) Faceoffs pages use two-row nested
+# headers (Home/Away/Total groups) that parse_player_stat_table can't align correctly,
+# so they're intentionally left out for now rather than shipping garbled columns.
+TEAM_FAIR_PLAY_URL = "FairPlay"
+TEAM_PP_PK_URL = "PowerplayAndPenaltyKilling"
 
 
 def resolve_season(league_id):
@@ -333,6 +379,43 @@ def scrape_league(key, cfg):
     except RuntimeError:
         pass
 
+    # Extra skater leaderboards (goals, assists, +/-, faceoffs, powerplay, shorthanded,
+    # defensemen, penalty minutes). Each page is fetched independently and wrapped in its
+    # own try/except so one broken/renamed URL doesn't take down the whole sync.
+    player_stats = {}
+    for key, slug in EXTRA_SKATER_STAT_PAGES.items():
+        try:
+            html = fetch(f"{BASE}/Players/Statistics/{slug}/{league_id}")
+            player_stats[key] = parse_player_stat_table(soupify(html), ["team", "gp"], limit=60)
+        except RuntimeError:
+            player_stats[key] = []
+
+    goalie_gaa = []
+    try:
+        gaa_html = fetch(f"{BASE}/Players/Statistics/LeadingGoaliesGAA/{league_id}")
+        goalie_gaa = parse_player_stat_table(soupify(gaa_html), ["team", "gaa"], limit=40)
+    except RuntimeError:
+        pass
+
+    # Team stats: Powerplay-efficiency + Penalty-killing live on the same page as two
+    # separate tables (in that order); Fair Play is its own single-table page.
+    team_powerplay, team_penalty_kill, team_fair_play = [], [], []
+    try:
+        pppk_html = fetch(f"{BASE}/Teams/Statistics/{TEAM_PP_PK_URL}/{league_id}")
+        pppk_soup = soupify(pppk_html)
+        pppk_tables = find_all_tables_by_headers(pppk_soup, ["team", "gp"])
+        if len(pppk_tables) >= 1:
+            team_powerplay = parse_player_stat_table_from_table(pppk_tables[0], limit=20)
+        if len(pppk_tables) >= 2:
+            team_penalty_kill = parse_player_stat_table_from_table(pppk_tables[1], limit=20)
+    except RuntimeError:
+        pass
+    try:
+        fp_html = fetch(f"{BASE}/Teams/Statistics/{TEAM_FAIR_PLAY_URL}/{league_id}")
+        team_fair_play = parse_player_stat_table(soupify(fp_html), ["team", "pavg"], limit=20)
+    except RuntimeError:
+        pass
+
     games.sort(key=lambda g: g["date"])
     played = [g for g in games if g.get("played")]
     upcoming = [g for g in games if not g.get("played")]
@@ -346,6 +429,13 @@ def scrape_league(key, cfg):
         "upcoming": upcoming[:30],
         "scoringLeaders": scoring,
         "goalieLeaders": goalies,
+        "goalieGAA": goalie_gaa,
+        "playerStats": player_stats,
+        "teamStats": {
+            "powerplay": team_powerplay,
+            "penaltyKilling": team_penalty_kill,
+            "fairPlay": team_fair_play,
+        },
     }
 
 

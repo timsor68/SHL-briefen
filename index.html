@@ -151,9 +151,11 @@ table.stat-table td { text-align: center; padding: 6px 8px; border-bottom: 1px s
 table.stat-table th:first-child, table.stat-table td:first-child { text-align: left; }
 table.stat-table tbody tr:nth-child(-n+3) td:first-child { font-weight: 800; color: var(--accent); }
 
-.stat-subnav { display: flex; gap: 6px; margin-bottom: 14px; }
+.stat-subnav { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .stat-subnav button { border: 1px solid var(--border-color); background: var(--card-bg-alt); font-weight: 700; font-size: 12.5px; padding: 6px 13px; border-radius: 8px; cursor: pointer; font-family: inherit; }
 .stat-subnav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.stat-group-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 4px 0 6px; }
+table.stat-table th[title], table.standings th[title] { cursor: help; text-decoration: underline dotted var(--border-color); text-underline-offset: 3px; }
 
 footer { text-align: center; color: var(--text-muted); font-size: 12.5px; padding: 34px 24px 40px; }
 .footer-logo { display: block; width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
@@ -220,9 +222,28 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
     <section id="section-stats" class="section">
         <div class="card">
             <h2>Statistik <span class="season-tag" id="stats-season-tag"></span></h2>
+            <div class="stat-group-label">Spelare</div>
             <div class="stat-subnav">
                 <button class="active" data-stat="scoring" onclick="setStat('scoring')">Skytteligan</button>
-                <button data-stat="goalies" onclick="setStat('goalies')">Målvakter</button>
+                <button data-stat="goals" onclick="setStat('goals')">Mål</button>
+                <button data-stat="assists" onclick="setStat('assists')">Assist</button>
+                <button data-stat="plusMinus" onclick="setStat('plusMinus')">+/-</button>
+                <button data-stat="faceoffs" onclick="setStat('faceoffs')">Tekningar</button>
+                <button data-stat="powerplay" onclick="setStat('powerplay')">Powerplay</button>
+                <button data-stat="shorthanded" onclick="setStat('shorthanded')">Boxplay</button>
+                <button data-stat="defensemen" onclick="setStat('defensemen')">Backpoäng</button>
+                <button data-stat="penalties" onclick="setStat('penalties')">Utvisningar</button>
+            </div>
+            <div class="stat-group-label">Målvakter</div>
+            <div class="stat-subnav">
+                <button data-stat="goalies" onclick="setStat('goalies')">Räddningsprocent</button>
+                <button data-stat="goalieGaa" onclick="setStat('goalieGaa')">Insläppta/match</button>
+            </div>
+            <div class="stat-group-label">Lag</div>
+            <div class="stat-subnav">
+                <button data-stat="teamPowerplay" onclick="setStat('teamPowerplay')">Powerplay%</button>
+                <button data-stat="teamPenaltyKill" onclick="setStat('teamPenaltyKill')">Boxplay%</button>
+                <button data-stat="teamFairPlay" onclick="setStat('teamFairPlay')">Fair Play</button>
             </div>
             <div id="stats-wrap" class="status">Laddar…</div>
         </div>
@@ -445,6 +466,67 @@ function gameRow(g) {
     `;
 }
 
+// Förklaringstexter för kolumnrubriker, visas som hover-tooltip (title-attribut).
+// Två separata uppslag eftersom samma förkortning kan betyda olika saker i
+// tabelldelen (t.ex. "GM" = gjorda mål där) jämfört med spelar-/lagstatistiken
+// (t.ex. "GM" = matchstraff i Fair Play-tabellen).
+const STANDINGS_ABBR = {
+    '#': 'Placering i tabellen',
+    'Lag': 'Lagnamn',
+    'M': 'Antal spelade matcher',
+    'V': 'Vinster i ordinarie tid',
+    'O': 'Oavgjorda / förlängning',
+    'F': 'Förluster i ordinarie tid',
+    'GM': 'Gjorda mål : insläppta mål',
+    '+/-': 'Målskillnad (gjorda minus insläppta mål)',
+    'P': 'Poäng',
+    'OTW': 'Vinster efter förlängning eller straffar (Overtime Wins)',
+    'OTL': 'Förluster efter förlängning eller straffar (Overtime Losses)',
+    'GWSW': 'Matcher vunna på straffläggning (Game-Winning Shootout Wins)',
+    'GWSL': 'Matcher förlorade på straffläggning (Game-Winning Shootout Losses)',
+};
+const STAT_ABBR = {
+    'Rk': 'Rankning', '#': 'Rankning',
+    'No': 'Tröjnummer', 'Name': 'Spelarens namn', 'Team': 'Lag', 'Pos': 'Position (F = forward, D = back, G = målvakt)',
+    'GP': 'Spelade matcher (Games Played)',
+    'G': 'Gjorda mål (Goals)', 'A': 'Assist (Assists)', 'TP': 'Poäng totalt (mål + assist)',
+    'AVG.': 'Poäng i snitt per match', 'AVG': 'Poäng i snitt per match',
+    'PIM': 'Utvisningsminuter (Penalty In Minutes)',
+    '+/-': 'Plus/minus — målskillnad i matcher spelaren var på isen',
+    'FO%': 'Tekningsprocent (Faceoff %)',
+    'ADV.': 'Antal powerplay-tillfällen', 'ADV': 'Antal powerplay-tillfällen',
+    'PPGF': 'Mål gjorda i powerplay (Powerplay Goals For)',
+    'PP%': 'Powerplay-effektivitet i procent',
+    'TPP': 'Total tid i powerplay',
+    'M:S': 'Tid i minuter:sekunder',
+    'SHGA': 'Insläppta mål i boxplay (Shorthanded Goals Against)',
+    'DVG.': 'Antal boxplay-tillfällen (undermannad)', 'DVG': 'Antal boxplay-tillfällen (undermannad)',
+    'PPGA': 'Insläppta powerplay-mål (Powerplay Goals Against)',
+    'PK%': 'Boxplay-effektivitet i procent (Penalty Kill %)',
+    'TSH': 'Total tid i boxplay (undermannad)',
+    'SHGF': 'Gjorda mål i boxplay (Shorthanded Goals For)',
+    'GPI': 'Matcher spelade som målvakt',
+    'MIP': 'Minuter spelade i mål',
+    'SOG': 'Skott mot målvakten (Shots On Goal)',
+    'GA': 'Insläppta mål (Goals Against)',
+    'GAA': 'Insläppta mål i snitt per match (Goals Against Average)',
+    'SVS': 'Räddningar (Saves)', 'SVS%': 'Räddningsprocent',
+    'SO': 'Hållna nollor (Shutouts)',
+    'W': 'Vinster', 'L': 'Förluster', 'W%': 'Vinstprocent',
+    'P2': 'Antal 2-minutersutvisningar',
+    'P5': 'Antal 5-minutersutvisningar',
+    'P10': 'Antal 10-minutersutvisningar',
+    'GM': 'Matchstraff (Game Misconduct)',
+    'MP': 'Matchstraff, antal kvarstående',
+    'PAVG.': 'Utvisningsminuter i snitt per match', 'PAVG': 'Utvisningsminuter i snitt per match',
+};
+
+function abbrTip(dict, label) {
+    const key = (label || '').trim();
+    const tip = dict[key] || dict[key.replace(/\.$/, '')] || '';
+    return tip ? ` title="${tip.replace(/"/g, '&quot;')}"` : '';
+}
+
 function renderTable() {
     const ld = leagueData();
     const seasonTag = document.getElementById('table-season-tag');
@@ -456,10 +538,14 @@ function renderTable() {
     }
     const rows = ld.standings.slice().sort((a, b) => a.rank - b.rank);
     const n = rows.length;
+    const hasOt = rows.some(r => (r.otw || r.otl || r.gwsw || r.gwsl));
+    const otHeaders = hasOt ? ['OTW', 'OTL', 'GWSW', 'GWSL'] : [];
+    const headers = ['#', 'Lag', 'M', 'V', 'O', 'F', 'GM', '+/-', 'P', ...otHeaders];
     const html = `
+        <div class="stat-scroll">
         <table class="standings">
             <thead><tr>
-                <th>#</th><th>Lag</th><th>M</th><th>V</th><th>O</th><th>F</th><th>GM</th><th>+/-</th><th>P</th>
+                ${headers.map(h => `<th${abbrTip(STANDINGS_ABBR, h)}>${h}</th>`).join('')}
             </tr></thead>
             <tbody>
                 ${rows.map((r, i) => `
@@ -469,13 +555,35 @@ function renderTable() {
                         <td>${r.gp}</td><td>${r.w}</td><td>${r.t}</td><td>${r.l}</td>
                         <td>${r.gf}:${r.ga}</td><td>${r.gf - r.ga > 0 ? '+' : ''}${r.gf - r.ga}</td>
                         <td class="pts">${r.pts}</td>
+                        ${hasOt ? `<td>${r.otw || 0}</td><td>${r.otl || 0}</td><td>${r.gwsw || 0}</td><td>${r.gwsl || 0}</td>` : ''}
                     </tr>
                 `).join('')}
             </tbody>
         </table>
+        </div>
     `;
     wrap.innerHTML = html;
 }
+
+// Alla statistikkategorier som visas under Statistik-fliken. `data(ld)` plockar ut
+// rätt lista ur shl-briefen-data.json — spelarlistorna kommer från fetch_shl.py:s
+// generiska, rubrik-drivna tabellparsning så kolumnerna kan variera något per kategori.
+const STAT_CATEGORIES = {
+    scoring: ld => ld.scoringLeaders,
+    goals: ld => ld.playerStats && ld.playerStats.goals,
+    assists: ld => ld.playerStats && ld.playerStats.assists,
+    plusMinus: ld => ld.playerStats && ld.playerStats.plusMinus,
+    faceoffs: ld => ld.playerStats && ld.playerStats.faceoffs,
+    powerplay: ld => ld.playerStats && ld.playerStats.powerplay,
+    shorthanded: ld => ld.playerStats && ld.playerStats.shorthanded,
+    defensemen: ld => ld.playerStats && ld.playerStats.defensemen,
+    penalties: ld => ld.playerStats && ld.playerStats.penalties,
+    goalies: ld => ld.goalieLeaders,
+    goalieGaa: ld => ld.goalieGAA,
+    teamPowerplay: ld => ld.teamStats && ld.teamStats.powerplay,
+    teamPenaltyKill: ld => ld.teamStats && ld.teamStats.penaltyKilling,
+    teamFairPlay: ld => ld.teamStats && ld.teamStats.fairPlay,
+};
 
 function renderStats() {
     const ld = leagueData();
@@ -486,19 +594,20 @@ function renderStats() {
         wrap.innerHTML = '<div class="status">Ingen statistik ännu — vänta på att shl-sync-actionen har körts en gång.</div>';
         return;
     }
-    const list = currentStat === 'scoring' ? ld.scoringLeaders : ld.goalieLeaders;
+    const getList = STAT_CATEGORIES[currentStat] || STAT_CATEGORIES.scoring;
+    const list = getList(ld);
     if (!list || !list.length) {
-        wrap.innerHTML = '<div class="status">Ingen spelarstatistik hittad för den här säsongen ännu.</div>';
+        wrap.innerHTML = '<div class="status">Ingen statistik hittad för den här kategorin ännu.</div>';
         return;
     }
     // Kolumnerna byggs dynamiskt från de faktiska rubrikerna som skrapades från
     // stats.swehockey.se, så tabellen anpassar sig även om exakta kolumnnamn skiljer
-    // sig något mellan Skytteligan och Målvakter.
+    // sig något mellan kategorierna.
     const cols = Object.keys(list[0]).filter(k => k && k !== 'col0');
     const html = `
         <div class="stat-scroll">
         <table class="stat-table">
-            <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <thead><tr>${cols.map(c => `<th${abbrTip(STAT_ABBR, c)}>${c}</th>`).join('')}</tr></thead>
             <tbody>
                 ${list.slice(0, 40).map(row => `<tr>${cols.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>`).join('')}
             </tbody>
