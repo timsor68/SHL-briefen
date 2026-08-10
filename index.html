@@ -27,12 +27,13 @@
     --text-muted: #8d9bb8;
     --border-color: #253853;
     --shl-navy: #0B2545;
-    --shl-navy-2: #050f22;
+    --shl-navy-2: #030a14;
     --shl-gold: #D4A017;
     --shl-glow: #4fb2ff;
-    --allsv-teal: #0f5c56;
-    --allsv-teal-2: #06302c;
-    --allsv-glow: #34d399;
+    /* Mer intensiv, distinkt grön palett för HockeyAllsvenskan (tydligare kontrast mot SHL:s blå). */
+    --allsv-teal: #064e3b;
+    --allsv-teal-2: #021a14;
+    --allsv-glow: #10b981;
     --danger: #ef4444;
     --font-display: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
@@ -59,14 +60,26 @@ body {
         linear-gradient(180deg, var(--bg-color-2) 0%, var(--bg-color) 900px);
     background-repeat: no-repeat;
 }
-body.league-allsvenskan { --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2); --glow: var(--allsv-glow); }
+body.league-allsvenskan {
+    /* Bytt bakgrundston (inte bara accent/glow) för HockeyAllsvenskan, så hela miljön
+       går i mörkgrönt istället för bara spotlights/kort-kanter. */
+    --bg-color: #02120e;
+    --bg-color-2: #04241c;
+    --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2); --glow: var(--allsv-glow);
+}
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-    color: #fff; padding: 18px 0 0; position: relative; overflow: hidden;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 8px 24px rgba(0,0,0,0.18);
-    transition: background 0.25s ease;
+    /* Lagrad bakgrund: strålkastarglöd underifrån, svaga skridskospår i isen, mörk bas. */
+    background:
+        radial-gradient(ellipse at bottom, color-mix(in srgb, var(--glow) 35%, transparent) 0%, transparent 65%),
+        repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 30px),
+        repeating-linear-gradient(65deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 45px),
+        linear-gradient(135deg, var(--bg-color) 0%, var(--accent-2) 50%, #000000 100%);
+    color: #fff; padding: 24px 0 0; position: relative; overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    border-bottom: 2px solid var(--glow);
+    transition: all 0.3s ease;
 }
 header.top::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -90,38 +103,50 @@ header.top .wrap { position: relative; }
    eller diamant-dekoration används här eller någon annanstans i headern. */
 .hero-wrap { text-align: center; padding: 4px 0 6px; }
 .hero-wordmark {
-    margin: 0; font-family: var(--font-display); font-weight: 800;
-    font-size: clamp(38px, 9vw, 88px); line-height: 1; letter-spacing: 0.005em;
-    background: linear-gradient(180deg, #ffffff 0%, #dbe4f2 30%, #a9bcd8 55%, #55698c 100%);
+    margin: 10px 0 20px; font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(48px, 11vw, 110px); line-height: 1; letter-spacing: 0.02em;
+    background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 30%, #94a3b8 50%, #334155 70%, #0f172a 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.4);
     text-shadow:
-        0 1px 0 rgba(255,255,255,0.5),
-        0 2px 0 #c7d2e4, 0 3px 0 #b3c1da, 0 4px 0 #9fb0d0,
-        0 5px 1px rgba(0,0,0,0.35), 0 8px 10px rgba(0,0,0,0.45), 0 16px 28px rgba(0,0,0,0.4);
-    filter: drop-shadow(0 0 28px color-mix(in srgb, var(--glow) 55%, transparent));
+        0px 2px 1px rgba(255,255,255,0.5),
+        0px 4px 0px #64748b, 0px 6px 0px #475569, 0px 8px 0px #334155, 0px 10px 0px #1e293b,
+        0px 12px 15px rgba(0, 0, 0, 0.7), 0px 20px 30px rgba(0, 0, 0, 0.5);
+    filter: drop-shadow(0 0 25px color-mix(in srgb, var(--glow) 60%, transparent));
+    transition: filter 0.3s ease;
 }
 .hero-rule {
     width: min(340px, 70%); height: 3px; margin: 10px auto 0; border-radius: 3px;
     background: linear-gradient(90deg, transparent, var(--glow), transparent);
     opacity: 0.8;
 }
-.league-switch { display: flex; gap: 6px; background: rgba(255,255,255,0.12); padding: 4px; border-radius: 10px; }
-.league-btn {
-    border: none; background: transparent; color: rgba(255,255,255,0.75); font-weight: 700; font-size: 13px;
-    padding: 7px 14px; border-radius: 7px; cursor: pointer; font-family: inherit;
-    transition: background 0.15s ease, color 0.15s ease;
+.league-switch {
+    display: flex; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 12px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
 }
-.league-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: #fff; }
-.league-btn.active { background: #fff; color: var(--shl-navy); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.league-btn {
+    border: 1px solid rgba(255,255,255,0.05);
+    background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2));
+    color: rgba(255,255,255,0.7); font-weight: 700; font-size: 13px;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: all 0.2s ease;
+}
+.league-btn:hover:not(.active) { background: rgba(255,255,255,0.15); color: #fff; }
+.league-btn.active {
+    background: linear-gradient(180deg, #ffffff, #cbd5e1); color: #0f172a;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 15px color-mix(in srgb, var(--glow) 80%, transparent);
+    transform: translateY(2px); /* ger intrycket av en nedtryckt knapp */
+}
 body.league-allsvenskan .league-btn.active { color: var(--allsv-teal); }
 nav.tabs { display: flex; gap: 4px; overflow-x: auto; }
 .tab-btn {
-    border: none; background: transparent; color: rgba(255,255,255,0.65); font-weight: 700; font-size: 14.5px;
-    padding: 10px 16px 12px; cursor: pointer; font-family: inherit; border-bottom: 3px solid transparent; white-space: nowrap;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    border: none; background: transparent; color: rgba(255,255,255,0.65); font-weight: 700; font-size: 15px;
+    padding: 10px 18px 12px; cursor: pointer; font-family: inherit; border-bottom: 3px solid transparent; white-space: nowrap;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
 }
 .tab-btn:hover:not(.active) { color: rgba(255,255,255,0.9); }
-.tab-btn.active { color: #fff; border-bottom-color: var(--shl-gold); }
+.tab-btn.active { color: #fff; border-bottom-color: var(--glow); text-shadow: 0 0 10px var(--glow); }
 main { padding: 24px 0 60px; }
 .section { display: none; }
 .section.active { display: block; }
