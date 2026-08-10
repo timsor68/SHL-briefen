@@ -143,7 +143,16 @@ def parse_standings(soup):
 # requires at least one letter on each side so it can't accidentally match a bare score
 # cell like "10 - 12" (some periods/overtime scores are 2+ digits too, so digit-count
 # alone isn't a safe discriminator — letters are, since every team name has some).
-TEAM_VS_RE = re.compile(r"^(.{2,45})\s-\s(.{2,45})$")
+#
+# IMPORTANT: the real stats.swehockey.se markup does NOT render exactly one space on
+# each side of the dash — BeautifulSoup's get_text(" ", strip=True) ends up producing
+# "Frölunda HC  -   Växjö Lakers HC" (two spaces before the dash, three after), most
+# likely from extra/empty inline nodes around the separator in the source HTML. An
+# earlier version of this regex required exactly one space (\s) and silently failed to
+# match on the live site, causing the fallback path below to grab the wrong cell (the
+# date/time column) instead — the "kommande matcher visar datum men inte lag" bug.
+# \s+ (one or more) is required here, not \s, to match the real page.
+TEAM_VS_RE = re.compile(r"^(.{2,45}?)\s+-\s+(.{2,45})$")
 
 
 def _has_letter(s):
@@ -166,13 +175,20 @@ def parse_games_table(table):
         return []
     has_result_col = "result" in ht
     games = []
+    # stats.swehockey.se only prints a Date cell on the *first* row of each day's game
+    # group (a rowspan in the real markup) — continuation rows for the same day have
+    # something else entirely in cell[0] (often a leaked time value). Without tracking
+    # the last real date seen, every game except the day's first silently disappears,
+    # which is exactly the "only one match per date shown" symptom that was reported.
+    last_date = None
     for tr in table.find_all("tr"):
         texts = cell_texts(tr)
         if not texts or texts[0].lower() == "date":
             continue
-        if not re.match(r"\d{4}-\d{2}-\d{2}", texts[0]):
+        if all(not c for c in texts):
             continue
-        date_raw = texts[0]
+
+        date_match = re.match(r"\d{4}-\d{2}-\d{2}", texts[0])
 
         game_idx = None
         home, away = "", ""
@@ -183,9 +199,23 @@ def parse_games_table(table):
                 game_idx = i
                 break
 
+        if date_match:
+            date_raw = texts[0]
+            last_date = date_raw
+        elif last_date is not None and game_idx is not None:
+            # No date in this row, but we've seen one earlier in the table and this
+            # row does contain a genuine "Lag - Lag" match — safe to attribute it to
+            # the day's most recently seen date.
+            date_raw = last_date
+        else:
+            # No date of its own, no established date yet, or no recognizable game
+            # pattern at all (e.g. an ad/separator row) — can't safely place this row.
+            continue
+
         if game_idx is None:
-            # Nothing matched the "Lag - Lag" pattern at all (unexpected row shape) —
-            # fall back to the old column-1 assumption rather than dropping the row.
+            # Row has its own date but nothing matched the "Lag - Lag" pattern
+            # (unexpected row shape) — fall back to the old column-1 assumption
+            # rather than dropping the row.
             game_text = texts[1] if len(texts) > 1 else ""
             parts = re.split(r"\s+-\s+", game_text)
             home = parts[0].strip() if len(parts) > 0 else ""
