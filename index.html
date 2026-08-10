@@ -32,13 +32,31 @@
     --shadow-md: 0 2px 6px rgba(15,23,42,0.05), 0 10px 24px rgba(15,23,42,0.07);
     --accent: var(--shl-navy);
     --accent-2: var(--shl-navy-2);
+    --bg-glow-a: #0b254522;
+    --bg-glow-b: #d4a01720;
 }
 * { box-sizing: border-box; }
 body {
-    margin: 0; background: var(--bg-color); color: var(--text-main);
+    margin: 0; color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    /* Subtila, färgtonade "aurora"-blobbar i hörnen (byter nyans med liga via
+       --bg-glow-a/b) plus ett mycket lätt punktraster för struktur, så de tomma
+       marginalerna utanför innehållskolumnen inte känns helt platta och livlösa. */
+    background-image:
+        radial-gradient(circle at 6% 4%, var(--bg-glow-a), transparent 30%),
+        radial-gradient(circle at 96% 10%, var(--bg-glow-b), transparent 26%),
+        radial-gradient(circle at 92% 96%, var(--bg-glow-a), transparent 28%),
+        radial-gradient(circle at 3% 90%, var(--bg-glow-b), transparent 24%),
+        radial-gradient(circle, rgba(15,23,42,0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 24px 24px;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+    background-attachment: fixed, fixed, fixed, fixed, scroll;
 }
-body.league-allsvenskan { --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2); }
+body.league-allsvenskan {
+    --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2);
+    --bg-glow-a: #0f5c5622; --bg-glow-b: #06302c1c;
+}
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
@@ -119,7 +137,18 @@ main { padding: 24px 0 60px; }
 }
 .article-thumb-placeholder {
     width: 100%; height: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-size: 34px; opacity: 0.8;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.article-thumb-placeholder.emoji { font-size: 34px; opacity: 0.8; }
+.article-thumb-logo-wrap {
+    width: 68px; height: 68px; border-radius: 50%; background: #fff; padding: 10px;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+.article-thumb-logo { width: 100%; height: 100%; object-fit: contain; }
+.article-thumb-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: 0.03em;
+    background: #fff; width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.25);
 }
 .article-content { min-width: 0; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
 .article-meta { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -397,6 +426,75 @@ function teamBadge(name) {
         return `<img class="team-logo" src="${TEAM_LOGO_BASE}${slug}.svg" alt="${name}" loading="lazy" onerror="teamLogoFallback(this,'${s.color}','${s.text}','${s.code}')">`;
     }
     return `<span class="team-dot" style="background:${s.color};color:${s.text}">${s.code}</span>`;
+}
+
+/* Nyckelord -> kanoniskt lagnamn (TEAM_STYLE-nyckel), för att kunna visa RÄTT lags
+   logga som platshållarbild på nyheter som saknar egen bild. Vanlig substräng-matchning
+   (som articleMentionsAny ovan) i stället för \b-ordgränser i regex — JS:s \w/\b är
+   bara ASCII-medveten, så \bskellefteå\b matchar ALDRIG eftersom "å" inte räknas som
+   ett "ordtecken" och gränsen efter det därför aldrig uppstår. Samma substräng-teknik
+   som redan används (och är beprövad) i SHL_TEAM_KEYWORDS/ALLSV_TEAM_KEYWORDS ovan.
+   AIK återanvänder samma Stockholm/Skellefteå-särskiljning som mentionsStockholmAIK().
+========================================================= */
+const TEAM_NAME_KEYWORDS = [
+    { kw: 'brynäs', team: 'Brynäs IF' },
+    { kw: 'djurgården', team: 'Djurgårdens IF' },
+    { kw: 'djurgårdens', team: 'Djurgårdens IF' },
+    { kw: 'frölunda', team: 'Frölunda HC' },
+    { kw: 'färjestad', team: 'Färjestad BK' },
+    { kw: 'hv71', team: 'HV 71' },
+    { kw: 'hv 71', team: 'HV 71' },
+    { kw: 'björklöven', team: 'IF Björklöven' },
+    { kw: 'malmö redhawks', team: 'IF Malmö Redhawks' },
+    { kw: 'linköping', team: 'Linköping HC' },
+    { kw: 'luleå', team: 'Luleå HF' },
+    { kw: 'rögle', team: 'Rögle BK' },
+    { kw: 'skellefteå', team: 'Skellefteå AIK' },
+    { kw: 'timrå', team: 'Timrå IK' },
+    { kw: 'växjö lakers', team: 'Växjö Lakers HC' },
+    { kw: 'örebro hk', team: 'Örebro HK' },
+    { kw: 'almtuna', team: 'Almtuna IS' },
+    { kw: 'karlskoga', team: 'BIK Karlskoga' },
+    { kw: 'oskarshamn', team: 'IK Oskarshamn' },
+    { kw: 'kalmar hc', team: 'Kalmar HC' },
+    { kw: 'modo', team: 'MoDo Hockey' },
+    { kw: 'mora ik', team: 'Mora IK' },
+    { kw: 'nybro', team: 'Nybro Vikings IF' },
+    { kw: 'södertälje', team: 'Södertälje SK' },
+    { kw: 'vimmerby', team: 'Vimmerby HC' },
+    { kw: 'visby', team: 'Visby/Roma HK' },
+    { kw: 'roma', team: 'Visby/Roma HK' },
+    { kw: 'västerås', team: 'Västerås IK' },
+    { kw: 'östersund', team: 'Östersunds IK' },
+    { kw: 'leksand', team: 'Leksands IF' },
+];
+function detectArticleTeam(article) {
+    if (mentionsStockholmAIK(article)) return 'AIK';
+    const text = ((article.title || '') + ' ' + (article.description || '')).toLowerCase();
+    for (const { kw, team } of TEAM_NAME_KEYWORDS) {
+        if (text.includes(kw)) return team;
+    }
+    return null;
+}
+function articleTeamLogoFallback(img, color, text, code) {
+    const span = document.createElement('span');
+    span.className = 'article-thumb-code';
+    span.style.color = color;
+    span.textContent = code;
+    img.parentElement.replaceWith(span);
+}
+function articleTeamThumb(team) {
+    const s = teamStyle(team);
+    const slug = TEAM_LOGO_SLUG[team];
+    const bg = `linear-gradient(135deg, rgba(255,255,255,0.18), rgba(0,0,0,0.28)), ${s.color}`;
+    if (slug) {
+        return `<div class="article-thumb-placeholder" style="background:${bg}"><span class="article-thumb-logo-wrap"><img class="article-thumb-logo" src="${TEAM_LOGO_BASE}${slug}.svg" alt="${team}" loading="lazy" onerror="articleTeamLogoFallback(this,'${s.color}','${s.text}','${s.code}')"></span></div>`;
+    }
+    return `<div class="article-thumb-placeholder" style="background:${bg}"><span class="article-thumb-code" style="color:${s.color}">${s.code}</span></div>`;
+}
+function handleThumbError(img) {
+    const team = img.dataset.team || '';
+    img.outerHTML = team ? articleTeamThumb(team) : '<div class="article-thumb-placeholder emoji">🏒</div>';
 }
 
 /* =========================================================
@@ -729,18 +827,22 @@ function renderArticles(articles) {
         el.innerHTML = '<div class="status">Kunde inte hämta nyheter just nu — försök igen om en stund.</div>';
         return;
     }
-    el.innerHTML = articles.map(a => `
+    el.innerHTML = articles.map(a => {
+        const team = detectArticleTeam(a);
+        const media = a.thumbnail
+            ? `<img class="article-thumb" src="${a.thumbnail}" data-team="${team || ''}" loading="lazy" onerror="handleThumbError(this)" />`
+            : (team ? articleTeamThumb(team) : '<div class="article-thumb-placeholder emoji">🏒</div>');
+        return `
         <div class="article">
-            ${a.thumbnail
-                ? `<img class="article-thumb" src="${a.thumbnail}" loading="lazy" onerror="this.outerHTML='<div class=&quot;article-thumb-placeholder&quot;>🏒</div>'" />`
-                : `<div class="article-thumb-placeholder">🏒</div>`}
+            ${media}
             <div class="article-content">
                 <div class="article-meta">${a.source} · ${a.pubDate.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}</div>
                 <div class="article-title"><a href="${a.link}" target="_blank" rel="noopener">${a.title}</a></div>
                 <div class="article-desc">${a.description}</div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 async function ensureGeneralNews() {
     if (newsState.general) return newsState.general;
