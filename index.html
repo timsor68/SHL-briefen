@@ -210,26 +210,24 @@ main { padding: 24px 0 60px; }
    för bred kolumn som gör att VS inte känns centrerat) — därför den här
    tekniken istället.
 
-   Pixelvärdena nedan är RÄKNADE (inte gissade) så att VS hamnar exakt
-   centrerat mellan "Frölunda HC" (hemma) och "Växjö Lakers HC" (borta) i den
-   första kommande matchen:
-     - hemmalaget börjar på x=164 (datumkolumn 150px + 14px mellanrum) —
-       samma position som tidigare, så hemmalagets logga ligger kvar i rak
-       linje med tidigare varianter av designen.
-     - textbredden för "Frölunda HC" vid 13.5px/600 uppskattas till ~82px
-       (Liberation Sans som ungefärlig stand-in för Segoe UI/-apple-system,
-       det enda typsnitt som faktiskt går att mäta i den här miljön) ->
-       hemmalagstexten slutar alltså vid ~276px.
-     - VS ankras (via translate(-50%,-50%), så dess EGEN bredd spelar ingen
-       roll) vid x=320 — vilket enligt uträkningen ligger exakt mitt emellan
-       hemmalagstextens slut (276) och bortalagstextens start (364).
-     - bortalaget börjar (loggan) på x=334, dvs 14px efter VS-ankaret — precis
-       samma 14px "andningshål" som gällde innan.
-   Eftersom alla tre värden (164 / 320 / 334) är HÅRDKODADE och identiska på
-   varje rad hamnar VS i en snörrät lodrät linje neråt genom hela listan,
-   oavsett hur långt eller kort ett visst lags namn råkar vara — precis så som
-   efterfrågat. Andra matcher blir alltså INTE nödvändigtvis lika perfekt
-   centrerade som den första, vilket är en medveten avvägning. */
+   Hemmalagets position (x=164) och VS position (x=320, ankrad via
+   translate(-50%,-50%) så dess egen bredd inte spelar roll) står ORÖRDA —
+   de fick sina exakta värden i en tidigare omgång (räknat så att VS hamnar
+   centrerat mellan "Frölunda HC" och "Växjö Lakers HC" i första kommande
+   matchen) och ska inte ändras.
+
+   Bortalaget är däremot flyttat högerut. Måttstocken enligt önskemål: samma
+   luft som redan finns mellan DATUM-texten och hemmalagets logga ska
+   återanvändas mellan VS och bortalagets logga.
+     - datumtexten (t.ex. "mån 11 aug 19:00", 11.5px/700-fet stil, uppskattad
+       ≈100px bred) slutar alltså en bit innan hemmalagets logga vid x=164
+       -> luftrummet där är ≈164-100=64px.
+     - samma 64px läggs nu till VS-positionen: bortalaget flyttas från sitt
+       gamla x=334 till x=384 (320+64).
+   Alla tre värden (164 / 320 / 384) är fortsatt HÅRDKODADE och identiska på
+   varje rad, så både hemmalag och VS ligger kvar i sin raka linje, och
+   bortalaget får nu en likadan (raka linjen bevarad, bara omplacerad)
+   generös luft intill VS som hemmalaget har intill datumkolumnen. */
 .game-row {
     position: relative; display: grid; grid-template-columns: 150px 1fr 130px; align-items: center;
     column-gap: 14px; padding: 10px 6px; border-bottom: 1px solid var(--border-color);
@@ -244,7 +242,7 @@ main { padding: 24px 0 60px; }
     font-family: var(--font-display); font-weight: 800; font-size: 17px; text-align: center; white-space: nowrap;
 }
 .game-score .pending { font-size: 12px; color: var(--text-muted); font-weight: 700; }
-.team-row.away { position: absolute; left: 334px; top: 50%; transform: translateY(-50%); }
+.team-row.away { position: absolute; left: 384px; top: 50%; transform: translateY(-50%); }
 .game-venue { grid-column: 3; font-size: 10.5px; color: var(--text-muted); line-height: 1.25; }
 .group-heading { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 18px 0 6px; }
 .group-heading:first-child { margin-top: 0; }
@@ -335,12 +333,17 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
 
 @media (max-width: 560px) {
     /* Samma räkneteknik som desktop-varianten ovan, bara med mobilens smalare
-       datumkolumn (74px) och tightare 8px-mellanrum istället för 14px. */
+       datumkolumn (74px) och tightare 8px-mellanrum istället för 14px.
+       Hemmalag (82px) och VS (232px) är fortfarande orörda. Bortalaget
+       skalas proportionellt med samma förskjutning som på desktop (+50px av
+       164px ≈ +30%) eftersom datumtextens bredd vid 10px faktiskt överskrider
+       den smala mobil-kolumnen — den bokstavliga "luftrums"-uträkningen från
+       desktop går inte att återanvända rakt av här. */
     .game-row { grid-template-columns: 74px 1fr 62px; column-gap: 8px; }
     .game-date { font-size: 10px; }
     .team-row.home { left: 82px; }
     .game-score { left: 232px; }
-    .team-row.away { left: 240px; }
+    .team-row.away { left: 265px; }
     .game-venue { font-size: 9px; }
     .modal-box { padding: 18px 14px 20px; }
     .modal-score { font-size: 26px; }
