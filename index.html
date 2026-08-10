@@ -197,36 +197,55 @@ main { padding: 24px 0 60px; }
 .team-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Matches --- */
-/* Alla fem kolumnerna har FASTA bredder (inte 1fr, förutom bortalaget som får
-   resterande utrymme) så att varje del bildar en rak linje över alla rader:
-   - datum: bred nog att lämna luft innan hemmalaget börjar
-   - hemmalag: vänsterjusterad, fast bredd -> logga/namn i rak linje, SAMMA
-     behandling (logga+8px-mellanrum+namn, vänsterjusterat) som bortalaget —
-     ingen specialjustering av bara namnet.
-   - vs/resultat: liten fast bredd, centrerad
-   - bortalag: vänsterjusterad direkt efter vs, tar upp resten av utrymmet
-   - arena: egen kolumn längst till höger
-   Hemmalagskolumnens bredd (142px) är räknad, inte gissad: med fast bredd och
-   vänsterjustering (som ovan) hamnar VS-kolumnen exakt lika långt från slutet av
-   hemmalagsnamnet som från början av bortalagsnamnet ENDAST för just detta
-   textinnehåll — 142px = 2×(loggbredd 22px + mellanrum 8px) + textbredden för
-   "Frölunda HC" (uppskattad ≈82px vid 13.5px/600, mittemellan Liberation Sans
-   regular/bold-mätning, som ungefärlig stand-in för Segoe UI/-apple-system).
-   Eftersom alla rader delar SAMMA fasta kolumnbredder ligger VS i en rak linje
-   på alla rader — första kommande matchen (Frölunda HC–Växjö Lakers HC) blir
-   centrerad, övriga matcher får ett annat (inte nödvändigtvis centrerat)
-   avstånd beroende på lagnamnens längd, per önskemål. */
+/* Datum och arena ligger kvar i ett vanligt 3-kolumners rutnät (datum | tom
+   mellanrymd | arena, längst till höger). Hemmalag, VS och bortalag är
+   DÄREMOT helt urplockade ur flödet (position:absolute, ankrade mot .game-row
+   som är position:relative) och placerade på FASTA pixel-positioner som är
+   IDENTISKA på varje rad. Anledningen: hemmalag och bortalag ska renderas på
+   EXAKT samma sätt (logga + 8px mellanrum + namn, vänsterankrat, aldrig
+   avklippt/ellipsis — precis som bortalaget redan gjorde), samtidigt som VS
+   ändå ska ligga i en helt rak lodrät linje på alla rader. Det går inte att
+   få båda sakerna med en vanlig grid-kolumn (en fast kolumnbredd för
+   hemmalaget innebär antingen trolig avklippning av långa lagnamn, eller en
+   för bred kolumn som gör att VS inte känns centrerat) — därför den här
+   tekniken istället.
+
+   Pixelvärdena nedan är RÄKNADE (inte gissade) så att VS hamnar exakt
+   centrerat mellan "Frölunda HC" (hemma) och "Växjö Lakers HC" (borta) i den
+   första kommande matchen:
+     - hemmalaget börjar på x=164 (datumkolumn 150px + 14px mellanrum) —
+       samma position som tidigare, så hemmalagets logga ligger kvar i rak
+       linje med tidigare varianter av designen.
+     - textbredden för "Frölunda HC" vid 13.5px/600 uppskattas till ~82px
+       (Liberation Sans som ungefärlig stand-in för Segoe UI/-apple-system,
+       det enda typsnitt som faktiskt går att mäta i den här miljön) ->
+       hemmalagstexten slutar alltså vid ~276px.
+     - VS ankras (via translate(-50%,-50%), så dess EGEN bredd spelar ingen
+       roll) vid x=320 — vilket enligt uträkningen ligger exakt mitt emellan
+       hemmalagstextens slut (276) och bortalagstextens start (364).
+     - bortalaget börjar (loggan) på x=334, dvs 14px efter VS-ankaret — precis
+       samma 14px "andningshål" som gällde innan.
+   Eftersom alla tre värden (164 / 320 / 334) är HÅRDKODADE och identiska på
+   varje rad hamnar VS i en snörrät lodrät linje neråt genom hela listan,
+   oavsett hur långt eller kort ett visst lags namn råkar vara — precis så som
+   efterfrågat. Andra matcher blir alltså INTE nödvändigtvis lika perfekt
+   centrerade som den första, vilket är en medveten avvägning. */
 .game-row {
-    display: grid; grid-template-columns: 150px 142px 62px 1fr 130px; align-items: center;
+    position: relative; display: grid; grid-template-columns: 150px 1fr 130px; align-items: center;
     column-gap: 14px; padding: 10px 6px; border-bottom: 1px solid var(--border-color);
-    border-radius: 8px; transition: background 0.12s ease;
+    border-radius: 8px; transition: background 0.12s ease; min-height: 34px;
 }
 .game-row:hover { background: var(--card-bg-alt); }
 .game-row:last-child { border-bottom: none; }
 .game-date { font-size: 11.5px; color: var(--text-muted); font-weight: 700; }
-.game-score { font-family: var(--font-display); font-weight: 800; font-size: 17px; text-align: center; min-width: 44px; padding: 0 4px; }
+.team-row.home { position: absolute; left: 164px; top: 50%; transform: translateY(-50%); }
+.game-score {
+    position: absolute; left: 320px; top: 50%; transform: translate(-50%, -50%);
+    font-family: var(--font-display); font-weight: 800; font-size: 17px; text-align: center; white-space: nowrap;
+}
 .game-score .pending { font-size: 12px; color: var(--text-muted); font-weight: 700; }
-.game-venue { font-size: 10.5px; color: var(--text-muted); line-height: 1.25; }
+.team-row.away { position: absolute; left: 334px; top: 50%; transform: translateY(-50%); }
+.game-venue { grid-column: 3; font-size: 10.5px; color: var(--text-muted); line-height: 1.25; }
 .group-heading { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 18px 0 6px; }
 .group-heading:first-child { margin-top: 0; }
 
@@ -315,8 +334,13 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
 .fun-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 1px; }
 
 @media (max-width: 560px) {
-    .game-row { grid-template-columns: 74px 110px 40px 1fr 62px; column-gap: 8px; }
+    /* Samma räkneteknik som desktop-varianten ovan, bara med mobilens smalare
+       datumkolumn (74px) och tightare 8px-mellanrum istället för 14px. */
+    .game-row { grid-template-columns: 74px 1fr 62px; column-gap: 8px; }
     .game-date { font-size: 10px; }
+    .team-row.home { left: 82px; }
+    .game-score { left: 232px; }
+    .team-row.away { left: 240px; }
     .game-venue { font-size: 9px; }
     .modal-box { padding: 18px 14px 20px; }
     .modal-score { font-size: 26px; }
@@ -708,7 +732,7 @@ function gameRow(g) {
             <div class="game-date">${fmtDate(g.date)}</div>
             <div class="team-row home">${teamBadge(g.home)}<span class="team-name">${g.home}</span></div>
             <div class="game-score">${scoreHtml}</div>
-            <div class="team-row">${teamBadge(g.away)}<span class="team-name">${g.away}</span></div>
+            <div class="team-row away">${teamBadge(g.away)}<span class="team-name">${g.away}</span></div>
             <div class="game-venue">${venueText}</div>
         </div>
     `;
