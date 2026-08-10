@@ -254,10 +254,62 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
 .footer-logo { display: block; width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 .footer-credit { font-size: 11px; font-weight: 700; color: var(--text-muted); opacity: 0.7; letter-spacing: 0.02em; margin-top: 4px; }
 
+/* --- Matchfakta-popup --- */
+.game-row.clickable { cursor: pointer; }
+.modal-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(2, 5, 12, 0.72); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    padding: 24px 16px; overflow-y: auto;
+}
+.modal-backdrop.open { display: flex; align-items: flex-start; justify-content: center; }
+.modal-box {
+    background: var(--card-bg-alt); border: 1px solid var(--border-color); border-radius: 16px;
+    box-shadow: var(--shadow-md); max-width: 560px; width: 100%; padding: 22px 22px 26px;
+    position: relative; margin: auto;
+}
+.modal-close {
+    position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main);
+    font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { border-color: var(--glow); color: var(--glow); }
+.modal-title-row { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 4px 30px 4px; text-align: center; }
+.modal-team { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.modal-team .team-logo, .modal-team .team-dot { width: 40px; height: 40px; font-size: 14px; }
+.modal-team-name { font-size: 13px; font-weight: 700; }
+.modal-score { font-family: var(--font-display); font-weight: 800; font-size: 34px; color: var(--glow); white-space: nowrap; }
+.modal-period-scores { text-align: center; font-size: 11.5px; color: var(--text-muted); margin: 2px 0 6px; }
+.modal-meta { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 16px; }
+.modal-section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 18px 0 8px; }
+.modal-section-title:first-of-type { margin-top: 0; }
+.boxscore-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 4px 10px; font-size: 13px; }
+.boxscore-grid .bx-label { text-align: center; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700; }
+.boxscore-grid .bx-home, .boxscore-grid .bx-away { font-weight: 800; }
+.boxscore-grid .bx-home { text-align: right; }
+.boxscore-grid .bx-away { text-align: left; }
+.goal-list { display: flex; flex-direction: column; gap: 10px; }
+.goal-period-heading { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.03em; margin: 10px 0 2px; }
+.goal-period-heading:first-child { margin-top: 0; }
+.goal-item { display: grid; grid-template-columns: 40px 22px 1fr; gap: 10px; align-items: start; font-size: 13px; }
+.goal-time { font-family: var(--font-display); font-weight: 800; color: var(--text-muted); font-size: 13px; padding-top: 1px; }
+.goal-badge .team-logo, .goal-badge .team-dot { width: 22px; height: 22px; font-size: 9px; }
+.goal-score-tag { font-weight: 800; }
+.goal-scorer { font-weight: 700; }
+.goal-tag { font-size: 10.5px; color: var(--text-muted); font-weight: 700; margin-left: 4px; }
+.goal-assists { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.modal-empty { text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px 0; }
+.fun-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.fun-stat { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px; text-align: center; }
+.fun-stat-value { font-family: var(--font-display); font-weight: 800; font-size: 16px; color: var(--glow); }
+.fun-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 1px; }
+
 @media (max-width: 560px) {
     .game-row { grid-template-columns: 74px 110px 40px 1fr 62px; column-gap: 8px; }
     .game-date { font-size: 10px; }
     .game-venue { font-size: 9px; }
+    .modal-box { padding: 18px 14px 20px; }
+    .modal-score { font-size: 26px; }
+    .modal-team .team-logo, .modal-team .team-dot { width: 32px; height: 32px; }
 }
 </style>
 </head>
@@ -351,6 +403,13 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
     SHL-briefen • Svensk elithockey, samlad på ett ställe.
     <div class="footer-credit">Made by Timo Sormunen</div>
 </footer>
+
+<div class="modal-backdrop" id="game-modal-backdrop" onclick="if (event.target === this) closeGameModal();">
+    <div class="modal-box" id="game-modal-box" role="dialog" aria-modal="true" aria-label="Matchfakta">
+        <button class="modal-close" type="button" onclick="closeGameModal()" aria-label="Stäng">&times;</button>
+        <div id="game-modal-content"></div>
+    </div>
+</div>
 
 <script>
 /* =========================================================
@@ -626,8 +685,15 @@ function gameRow(g) {
     // intill "vs" i stället för att glida mot datumkolumnen med ett stort tomrum
     // mittemellan. Arenan är nu en egen kolumn till höger om bortalaget i stället för
     // en rad under "vs".
+    // Spelade matcher med ett känt gameId går att klicka på för att öppna
+    // matchfakta-popupen (openGameModal) — kommande matcher (eller spelade matcher där
+    // gameId av någon anledning saknades vid skrapningen) förblir oklickbara.
+    const clickable = g.played && g.gameId;
+    const rowAttrs = clickable
+        ? ` class="game-row clickable" onclick="openGameModal(${g.gameId})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){openGameModal(${g.gameId})}"`
+        : ` class="game-row"`;
     return `
-        <div class="game-row">
+        <div${rowAttrs}>
             <div class="game-date">${fmtDate(g.date)}</div>
             <div class="team-row home">${teamBadge(g.home)}<span class="team-name">${g.home}</span></div>
             <div class="game-score">${scoreHtml}</div>
@@ -635,6 +701,142 @@ function gameRow(g) {
             <div class="game-venue">${venueText}</div>
         </div>
     `;
+}
+
+/* =========================================================
+   Matchfakta-popup (klick på en spelad match i Resultat-listan).
+   Data kommer från fetch_shl.py:s gameDetails-objekt (nyckel = gameId som
+   sträng), byggt av parse_game_events() mot stats.swehockey.se:s
+   /Game/Events/{id}-sida. Se README/kommentarer i fetch_shl.py för den
+   sidans exakta struktur och vilka fält som finns.
+========================================================= */
+const PERIOD_ORDER = ['1st period', '2nd period', '3rd period', 'Overtime', 'Shootout'];
+const PERIOD_NAMES_SV = {
+    '1st period': 'Första perioden', '2nd period': 'Andra perioden', '3rd period': 'Tredje perioden',
+    'Overtime': 'Förlängning', 'Shootout': 'Straffläggning',
+};
+const SITUATION_LABELS = { 'PP1': 'Powerplay', 'PP2': 'Powerplay 5-3', 'PS': 'Straffslag', 'SH': 'Boxplay' };
+function situationLabel(tag) { return SITUATION_LABELS[tag] || tag; }
+
+function openGameModal(gameId) {
+    const ld = leagueData();
+    const backdrop = document.getElementById('game-modal-backdrop');
+    const content = document.getElementById('game-modal-content');
+    const details = ld && ld.gameDetails ? ld.gameDetails[String(gameId)] : null;
+    const g = ld ? (ld.recentResults || []).find(x => x.gameId === gameId) : null;
+    content.innerHTML = (details && g) ? renderGameModalContent(g, details)
+        : '<div class="modal-empty">Ingen matchfakta tillgänglig för den här matchen ännu. Detaljerad statistik hämtas bara för de senaste matcherna, och kan dröja till nästa uppdatering.</div>';
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeGameModal() {
+    document.getElementById('game-modal-backdrop').classList.remove('open');
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeGameModal();
+});
+
+function renderGameModalContent(g, d) {
+    const periodsHtml = (d.periodScores || [])
+        .map((p, i) => `${['P1', 'P2', 'P3', 'Förl.', 'Straffar'][i] || ('P' + (i + 1))} ${p[0]}-${p[1]}`)
+        .join(' · ');
+
+    const goalsByPeriod = {};
+    (d.goals || []).forEach(goal => {
+        (goalsByPeriod[goal.period] = goalsByPeriod[goal.period] || []).push(goal);
+    });
+    let goalsHtml = '';
+    PERIOD_ORDER.forEach(p => {
+        if (!goalsByPeriod[p]) return;
+        goalsHtml += `<div class="goal-period-heading">${PERIOD_NAMES_SV[p] || p}</div>`;
+        goalsHtml += goalsByPeriod[p].map(goal => renderGoalItem(goal, g)).join('');
+    });
+    if (!goalsHtml) goalsHtml = '<div class="modal-empty">Ingen målstatistik hittad för den här matchen.</div>';
+
+    const hasBox = d.shots || d.saves || d.pim;
+    const boxRow = (label, pair) => pair
+        ? `<div class="bx-home">${pair[0]}</div><div class="bx-label">${label}</div><div class="bx-away">${pair[1]}</div>`
+        : '';
+    const boxHtml = hasBox ? `
+        <div class="modal-section-title">Boxscore</div>
+        <div class="boxscore-grid">
+            ${boxRow('Skott', d.shots)}
+            ${boxRow('Räddningar', d.saves)}
+            ${boxRow('Utvisningsmin.', d.pim)}
+        </div>` : '';
+
+    const fun = computeFunStats(d);
+    const funHtml = fun.length ? `
+        <div class="modal-section-title">Kul statistik</div>
+        <div class="fun-stat-grid">
+            ${fun.map(s => `<div class="fun-stat"><div class="fun-stat-value">${s.value}</div><div class="fun-stat-label">${s.label}</div></div>`).join('')}
+        </div>` : '';
+
+    return `
+        <div class="modal-title-row">
+            <div class="modal-team">${teamBadge(g.home)}<span class="modal-team-name">${g.home}</span></div>
+            <div class="modal-score">${d.homeScore} - ${d.awayScore}</div>
+            <div class="modal-team">${teamBadge(g.away)}<span class="modal-team-name">${g.away}</span></div>
+        </div>
+        ${periodsHtml ? `<div class="modal-period-scores">${periodsHtml}</div>` : ''}
+        ${d.spectators ? `<div class="modal-meta">Publik: ${d.spectators.toLocaleString('sv-SE')}</div>` : ''}
+        ${boxHtml}
+        <div class="modal-section-title">Mål</div>
+        <div class="goal-list">${goalsHtml}</div>
+        ${funHtml}
+    `;
+}
+
+function renderGoalItem(goal, g) {
+    const scoringTeam = goal.scoringTeam === g.home ? g.home : g.away;
+    const assistsText = (goal.assists && goal.assists.length)
+        ? 'Assist: ' + goal.assists.map(a => a.name).join(', ')
+        : 'Ingen assist registrerad';
+    const situationTag = goal.situation && goal.situation !== 'EQ'
+        ? `<span class="goal-tag">${situationLabel(goal.situation)}</span>` : '';
+    const scorerName = goal.scorer ? goal.scorer.name : 'Okänd målskytt';
+    const seasonGoals = goal.scorer && goal.scorer.seasonGoals ? ` (${goal.scorer.seasonGoals}:e målet)` : '';
+    return `
+        <div class="goal-item">
+            <div class="goal-time">${goal.time}</div>
+            <div class="goal-badge">${teamBadge(scoringTeam)}</div>
+            <div class="goal-info">
+                <div><span class="goal-score-tag">${goal.homeScore}-${goal.awayScore}</span> <span class="goal-scorer">${scorerName}</span>${seasonGoals}${situationTag}</div>
+                <div class="goal-assists">${assistsText}</div>
+            </div>
+        </div>
+    `;
+}
+
+// "Kul statistik" — enkla, robusta härledningar från redan skrapad data (inga nya
+// fält krävs från fetch_shl.py). Varje post läggs bara till om underlaget faktiskt
+// finns, så en match med ofullständig data helt enkelt visar färre rutor.
+function computeFunStats(d) {
+    const stats = [];
+    const goals = d.goals || [];
+    if (goals.length) {
+        stats.push({ label: 'Första målet', value: goals[0].time });
+        let leadChanges = 0, prevLeader = null;
+        goals.forEach(g => {
+            const leader = g.homeScore > g.awayScore ? 'home' : (g.awayScore > g.homeScore ? 'away' : null);
+            if (leader && prevLeader && leader !== prevLeader) leadChanges++;
+            if (leader) prevLeader = leader;
+        });
+        stats.push({ label: 'Ledningsbyten', value: leadChanges });
+        const perPeriod = {};
+        goals.forEach(g => { perPeriod[g.period] = (perPeriod[g.period] || 0) + 1; });
+        const topPeriod = Object.entries(perPeriod).sort((a, b) => b[1] - a[1])[0];
+        if (topPeriod) stats.push({ label: 'Flest mål i en period', value: `${PERIOD_NAMES_SV[topPeriod[0]] || topPeriod[0]} (${topPeriod[1]})` });
+        const ppGoals = goals.filter(g => (g.situation || '').startsWith('PP')).length;
+        if (ppGoals) stats.push({ label: 'Powerplay-mål', value: ppGoals });
+    }
+    if (d.shots && d.shots[0] && d.homeScore != null && d.awayScore != null) {
+        const hp = (d.homeScore / d.shots[0] * 100).toFixed(1);
+        const ap = d.shots[1] ? (d.awayScore / d.shots[1] * 100).toFixed(1) : '–';
+        stats.push({ label: 'Skottprocent (hemma / borta)', value: `${hp}% / ${ap}%` });
+    }
+    return stats;
 }
 
 // Förklaringstexter för kolumnrubriker, visas som hover-tooltip (title-attribut).

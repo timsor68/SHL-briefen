@@ -159,6 +159,164 @@ def _has_letter(s):
     return any(ch.isalpha() for ch in s)
 
 
+# The final-score cell on Schedule/Results pages links to the game's own report page
+# via a "javascript:openonlinewindow('/Game/Events/1088966','')" href — not a normal
+# href a browser would navigate, but the numeric game id inside it is exactly the id
+# needed to fetch that game's own goal-by-goal event log separately.
+GAME_EVENTS_ID_RE = re.compile(r"Game/Events/(\d+)")
+
+
+def extract_game_id(td_tag):
+    if td_tag is None:
+        return None
+    a = td_tag.find("a")
+    if not a:
+        return None
+    href = a.get("href", "") or a.get("onclick", "") or ""
+    m = GAME_EVENTS_ID_RE.search(href)
+    return int(m.group(1)) if m else None
+
+
+# ---------------------------------------------------------------------------
+# Per-game details (/Game/Events/{id}): period-by-period score, a short box score
+# (shots/saves/PIM/attendance), and the full goal-by-goal log with scorer + assists.
+# Powers the "match facts" pop-up on played games in the frontend.
+# ---------------------------------------------------------------------------
+PERIOD_LABEL_RE = re.compile(r"^(1st|2nd|3rd|4th|5th)\s+period$", re.I)
+GOAL_SCORE_RE = re.compile(r"^(\d+)\s*-\s*(\d+)\s*\(([^)]+)\)\s*([A-Za-z]*)$")
+PLAYER_CHUNK_RE = re.compile(r"^(\d+)\.\s*(.+?),\s*(.+?)(?:\s*\((\d+)\))?$")
+
+
+def parse_player_chunk(chunk):
+    m = PLAYER_CHUNK_RE.match(chunk.strip())
+    if not m:
+        return None
+    no, last, first, goals = m.groups()
+    return {
+        "no": no.strip(),
+        "name": f"{first.strip()} {last.strip()}",
+        "seasonGoals": int(goals) if goals else None,
+    }
+
+
+def parse_players_blob(text):
+    # Distinct players in this cell are separated by a noticeably wider run of spaces
+    # (3+) than the gap between a single player's own fields (jersey#/name/goal-count,
+    # which is consistently 1-2 spaces) — see module docstring examples gathered from
+    # real /Game/Events pages during development.
+    chunks = re.split(r"\s{3,}", text.strip())
+    players = [parse_player_chunk(c) for c in chunks if c.strip()]
+    return [p for p in players if p]
+
+
+def parse_game_events(soup, home_team, away_team):
+    """Parses a /Game/Events/{id} page: period scores, a short box score, and the
+    goal-by-goal log (time, scorer, assists). Returns None if the page doesn't look
+    like a real, finished game report."""
+    result = {
+        "periodScores": [], "homeScore": None, "awayScore": None, "spectators": None,
+        "shots": [None, None], "saves": [None, None], "pim": [None, None],
+        "goals": [],
+    }
+    final_score_text = None
+    for table in soup.find_all("table"):
+        for tr in table.find_all("tr"):
+            cells = cell_texts(tr)
+            if not cells:
+                continue
+            label = cells[0].strip().lower()
+            if label in ("shots", "saves", "pim") and len(cells) >= 6 and cells[4].strip().lower() == label:
+                try:
+                    home_val = int(re.sub(r"\D", "", cells[1]))
+                except ValueError:
+                    home_val = None
+                try:
+                    away_val = int(re.sub(r"\D", "", cells[5]))
+                except ValueError:
+                    away_val = None
+                if label == "shots":
+                    result["shots"] = [home_val, away_val]
+                    if len(cells) > 3 and "final score" in cells[3].lower():
+                        final_score_text = cells[3]
+                elif label == "saves":
+                    result["saves"] = [home_val, away_val]
+                elif label == "pim":
+                    result["pim"] = [home_val, away_val]
+
+    if final_score_text:
+        m = re.search(r"(\d+)\s*-\s*(\d+)\s*\(([^)]+)\)", final_score_text)
+        if m:
+            result["homeScore"] = int(m.group(1))
+            result["awayScore"] = int(m.group(2))
+            for part in m.group(3).split(","):
+                pm = re.match(r"\s*(\d+)\s*-\s*(\d+)\s*$", part)
+                if pm:
+                    result["periodScores"].append([int(pm.group(1)), int(pm.group(2))])
+        sm = re.search(r"Spectators:\s*([\d\s]+)", final_score_text)
+        if sm:
+            digits = re.sub(r"\D", "", sm.group(1))
+            if digits:
+                result["spectators"] = int(digits)
+
+    if result["homeScore"] is None:
+        return None  # doesn't look like a real finished-game report page
+
+    events_table = None
+    for table in soup.find_all("table"):
+        if "Goalkeeper Summary" in table.get_text():
+            events_table = table
+            break
+    if events_table is None:
+        return result
+
+    current_period = None
+    raw_goals = []
+    for tr in events_table.find_all("tr"):
+        cells = cell_texts(tr)
+        if not cells:
+            continue
+        first = cells[0].strip()
+        rest_empty = all(not c.strip() for c in cells[1:])
+        if rest_empty and (PERIOD_LABEL_RE.match(first) or first.lower() in ("overtime", "shootout")):
+            current_period = first
+            continue
+        if len(cells) < 4:
+            continue
+        gm = GOAL_SCORE_RE.match(cells[1].strip())
+        if not gm:
+            continue
+        players = parse_players_blob(cells[3])
+        if not players:
+            continue
+        raw_goals.append({
+            "period": current_period,
+            "time": first,
+            "homeScore": int(gm.group(1)),
+            "awayScore": int(gm.group(2)),
+            "situation": gm.group(3).strip(),
+            "scorer": players[0],
+            "assists": players[1:],
+        })
+
+    # The page lists events newest-first; flip to natural chronological order. Who
+    # actually scored is derived from the running score delta rather than the page's
+    # short team-code abbreviation (e.g. "FRÖ"/"VÄX"), which doesn't reliably map back
+    # onto our own team-name keys.
+    raw_goals.reverse()
+    prev_h, prev_a = 0, 0
+    for g in raw_goals:
+        if g["homeScore"] > prev_h:
+            g["scoringTeam"] = home_team
+        elif g["awayScore"] > prev_a:
+            g["scoringTeam"] = away_team
+        else:
+            g["scoringTeam"] = None
+        prev_h, prev_a = g["homeScore"], g["awayScore"]
+        result["goals"].append(g)
+
+    return result
+
+
 def parse_games_table(table):
     """Parses one Schedule or Results table.
 
@@ -183,6 +341,7 @@ def parse_games_table(table):
     last_date = None
     for tr in table.find_all("tr"):
         texts = cell_texts(tr)
+        cell_tags = tr.find_all(["td", "th"])
         if not texts or texts[0].lower() == "date":
             continue
         if all(not c for c in texts):
@@ -222,7 +381,7 @@ def parse_games_table(table):
             away = parts[1].strip() if len(parts) > 1 else game_text
             game_idx = 1
 
-        entry = {"date": date_raw, "home": home, "away": away, "played": False}
+        entry = {"date": date_raw, "home": home, "away": away, "played": False, "gameId": None}
 
         # Result: scan cells after the game cell for a "N - N" score (not anchored to
         # a fixed offset, since the number of columns between game and result varies).
@@ -235,6 +394,8 @@ def parse_games_table(table):
                     entry["awayScore"] = int(sm.group(2))
                     entry["played"] = True
                     result_idx = i
+                    if i < len(cell_tags):
+                        entry["gameId"] = extract_game_id(cell_tags[i])
                     break
 
         # Venue/periods: whatever non-empty text remains after the game (and result,
@@ -449,13 +610,32 @@ def scrape_league(key, cfg):
     games.sort(key=lambda g: g["date"])
     played = [g for g in games if g.get("played")]
     upcoming = [g for g in games if not g.get("played")]
+    recent = played[-30:]
+
+    # Goal-by-goal + short box score for every game shown in the "Resultat" list, to
+    # power the match-facts pop-up. One request per game, so this is intentionally
+    # capped to what's actually displayed (last 30) rather than the whole season.
+    # Best-effort per game: a single broken/renamed game page must not take down the
+    # whole sync, it just means that one game won't have a pop-up on the frontend.
+    game_details = {}
+    for g in recent:
+        gid = g.get("gameId")
+        if not gid:
+            continue
+        try:
+            ev_html = fetch(f"{BASE}/Game/Events/{gid}")
+            details = parse_game_events(soupify(ev_html), g["home"], g["away"])
+            if details:
+                game_details[str(gid)] = details
+        except RuntimeError:
+            pass
 
     return {
         "label": cfg["label"],
         "leagueId": league_id,
         "seasonLabel": season_label,
         "standings": standings,
-        "recentResults": played[-30:],
+        "recentResults": recent,
         "upcoming": upcoming[:30],
         "scoringLeaders": scoring,
         "goalieLeaders": goalies,
@@ -466,6 +646,7 @@ def scrape_league(key, cfg):
             "penaltyKilling": team_penalty_kill,
             "fairPlay": team_fair_play,
         },
+        "gameDetails": game_details,
     }
 
 
