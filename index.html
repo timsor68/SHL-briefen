@@ -509,6 +509,7 @@ const LEAGUE_NEWS_FEED = {
     allsvenskan: { name: 'Hockeyallsvenskan.se', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.hockeyallsvenskan.se/api/articles/rss') },
 };
 const GENERAL_NEWS_FEEDS = [
+    { name: 'Expressen Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://feeds.expressen.se/hockey') },
     { name: 'Hockeysverige', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://hockeysverige.se/feed/') },
     { name: 'SVT Sport Ishockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svt.se/sport/ishockey/rss.xml') },
     { name: 'Dagens Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dagenshockey.se/feed/') }
@@ -589,7 +590,12 @@ async function loadNewsForLeague(league) {
     // A general-feed article belongs in this league's list if it names one of this
     // league's clubs, OR names no club from EITHER league (e.g. schedule releases,
     // referee news, VM-coverage) — but not if it's clearly about the other league only.
-    const relevant = general.filter(a => articleMentionsAny(a, mine) || !articleMentionsAny(a, other));
+    // Expressen tags Allsvenskan pieces with "/hockeyallsvenskan/" in the URL, which is
+    // a more reliable signal than keyword-matching when it's present.
+    const relevant = general.filter(a => {
+        if (a.link && a.link.includes('/hockeyallsvenskan/')) return league === 'allsvenskan';
+        return articleMentionsAny(a, mine) || !articleMentionsAny(a, other);
+    });
     const merged = official.concat(relevant).sort((a, b) => b.pubDate - a.pubDate);
     newsState.byLeague[league] = merged;
     if (currentLeague === league && currentTab === 'news') renderArticles(merged.slice(0, 40));
