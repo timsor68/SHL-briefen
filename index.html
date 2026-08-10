@@ -279,15 +279,25 @@ function teamStyle(name) {
 }
 
 /* Bare club-name keywords for classifying general news articles into SHL vs
-   HockeyAllsvenskan (see loadNewsForLeague below). Not exhaustive/perfect — e.g. the
-   keyword "aik" also occurs inside "Skellefteå AIK" (an SHL club), so a Skellefteå
-   article could get pulled into the Allsvenskan list too. Good enough for sorting a
-   general blog feed; the official per-league RSS feeds are never affected by this. */
-const SHL_TEAM_KEYWORDS = ['brynäs', 'djurgården', 'djurgårdens', 'frölunda', 'färjestad', 'hv71', 'hv 71', 'björklöven', 'malmö redhawks', 'linköping', 'luleå', 'rögle', 'skellefteå', 'timrå', 'växjö lakers', 'örebro hk'];
-const ALLSV_TEAM_KEYWORDS = ['aik', 'almtuna', 'karlskoga', 'oskarshamn', 'kalmar hc', 'modo', 'mora ik', 'nybro', 'södertälje', 'vimmerby', 'visby', 'roma', 'västerås', 'östersund', 'leksand'];
+   HockeyAllsvenskan (see loadNewsForLeague / mentionsLeague below). These are only
+   ever applied to articles that already passed isHockeyArticle (i.e. confirmed to be
+   ABOUT hockey), so a "Luleå" mention here can't come from a swimming or basketball
+   piece anymore — that's filtered out earlier. */
+const SHL_TEAM_KEYWORDS = ['brynäs', 'djurgården', 'djurgårdens', 'frölunda', 'färjestad', 'hv71', 'hv 71', 'lhc', 'björklöven', 'malmö redhawks', 'linköping', 'luleå', 'rögle', 'skellefteå', 'timrå', 'växjö lakers', 'örebro hk'];
+const ALLSV_TEAM_KEYWORDS = ['almtuna', 'karlskoga', 'oskarshamn', 'kalmar hc', 'modo', 'mora ik', 'nybro', 'södertälje', 'vimmerby', 'visby', 'roma', 'västerås', 'östersund', 'leksand'];
 function articleMentionsAny(article, keywords) {
     const text = (article.title + ' ' + article.description).toLowerCase();
     return keywords.some(k => text.includes(k));
+}
+// "aik" handled separately from ALLSV_TEAM_KEYWORDS: bare "aik" also occurs inside
+// "Skellefteå AIK" (an SHL club), so exclude that specific phrase before matching.
+function mentionsStockholmAIK(article) {
+    const text = (article.title + ' ' + article.description).toLowerCase();
+    return /\baik\b/.test(text) && !/skellefteå\s*aik/.test(text);
+}
+function mentionsLeague(article, league) {
+    if (league === 'allsvenskan' && mentionsStockholmAIK(article)) return true;
+    return articleMentionsAny(article, league === 'shl' ? SHL_TEAM_KEYWORDS : ALLSV_TEAM_KEYWORDS);
 }
 
 /* =========================================================
@@ -522,17 +532,16 @@ const GENERAL_NEWS_FEEDS = [
     { name: 'SvD', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svd.se/feed/articles.rss'), mixedSports: true },
     // Lokaltidningar (NTM-koncernen) — täcker enskilda klubbar djupare än rikstäckande
     // källor, men blandar hockey med annan lokal sport, därav mixedSports:true.
-    { name: 'Corren (Linköping)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.corren.se/rss/sport'), mixedSports: true },
-    { name: 'NSD (Luleå)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.nsd.se/rss/sport'), mixedSports: true },
-    { name: 'Norran (Skellefteå)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.norran.se/rss/sport'), mixedSports: true },
-    { name: 'UNT (Uppsala)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.unt.se/rss/sport'), mixedSports: true },
+    { name: 'Corren (Linköping)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.corren.se/rss/sport'), mixedSports: true, homeLeague: 'shl' },
+    { name: 'NSD (Luleå)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.nsd.se/rss/sport'), mixedSports: true, homeLeague: 'shl' },
+    { name: 'Norran (Skellefteå)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.norran.se/rss/sport'), mixedSports: true, homeLeague: 'shl' },
+    { name: 'UNT (Uppsala)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.unt.se/rss/sport'), mixedSports: true, homeLeague: 'allsvenskan' },
 ];
 function isHockeyArticle(article) {
     if (article.categories && article.categories.some(c => c.toLowerCase().includes('hockey'))) return true;
     if (article.link && /\/(is)?hockey\//i.test(article.link)) return true;
     const text = (article.title + ' ' + article.description).toLowerCase();
-    if (text.includes('hockey')) return true;
-    return articleMentionsAny(article, SHL_TEAM_KEYWORDS) || articleMentionsAny(article, ALLSV_TEAM_KEYWORDS);
+    return text.includes('hockey');
 }
 async function fetchWithTimeout(url, options, timeoutMs = 8000) {
     const controller = new AbortController();
@@ -556,7 +565,8 @@ async function fetchRssFeed(feed) {
                 source: feed.name,
                 thumbnail: item.thumbnail || (item.enclosure && item.enclosure.link) || '',
                 categories: item.categories || [],
-                mixedSports: !!feed.mixedSports
+                mixedSports: !!feed.mixedSports,
+                homeLeague: feed.homeLeague || null
             }));
         }
     } catch (e) {
@@ -603,20 +613,19 @@ async function ensureGeneralNews() {
 }
 async function loadNewsForLeague(league) {
     renderNewsSkeleton();
-    const mine = league === 'shl' ? SHL_TEAM_KEYWORDS : ALLSV_TEAM_KEYWORDS;
-    const other = league === 'shl' ? ALLSV_TEAM_KEYWORDS : SHL_TEAM_KEYWORDS;
     const [official, general] = await Promise.all([
         fetchRssFeed(LEAGUE_NEWS_FEED[league]),
         ensureGeneralNews()
     ]);
-    // A general-feed article belongs in this league's list if it names one of this
-    // league's clubs, OR names no club from EITHER league (e.g. schedule releases,
-    // referee news, VM-coverage) — but not if it's clearly about the other league only.
-    // Expressen tags Allsvenskan pieces with "/hockeyallsvenskan/" in the URL, which is
-    // a more reliable signal than keyword-matching when it's present.
+    // A general-feed article belongs in this league's list only if it POSITIVELY names
+    // one of this league's clubs (or, for a local paper with a homeLeague tag, simply
+    // belongs to that paper's own club). Articles naming no recognizable Swedish club
+    // at all — NHL news, VM-coverage, schedule-wide announcements — are left out rather
+    // than guessed into both lists; better to under-show than leak in unrelated content.
     const relevant = general.filter(a => {
+        if (a.homeLeague) return a.homeLeague === league;
         if (a.link && a.link.includes('/hockeyallsvenskan/')) return league === 'allsvenskan';
-        return articleMentionsAny(a, mine) || !articleMentionsAny(a, other);
+        return mentionsLeague(a, league);
     });
     const merged = official.concat(relevant).sort((a, b) => b.pubDate - a.pubDate);
     newsState.byLeague[league] = merged;
