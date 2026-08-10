@@ -197,9 +197,17 @@ main { padding: 24px 0 60px; }
 .team-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Matches --- */
+/* Alla fem kolumnerna har FASTA bredder (inte 1fr, förutom bortalaget som får
+   resterande utrymme) så att varje del bildar en rak linje över alla rader:
+   - datum: bred nog att lämna luft innan hemmalaget börjar
+   - hemmalag: vänsterjusterad, fast bredd -> logga/namn i rak linje
+   - vs/resultat: liten fast bredd, centrerad -> hamnar ungefär mitt emellan
+     hemmalagets och bortalagets namn utan att vandra rad för rad
+   - bortalag: vänsterjusterad direkt efter vs, tar upp resten av utrymmet
+   - arena: egen kolumn längst till höger */
 .game-row {
-    display: grid; grid-template-columns: 96px 210px auto 1fr 130px; align-items: center;
-    column-gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--border-color);
+    display: grid; grid-template-columns: 150px 210px 62px 1fr 130px; align-items: center;
+    column-gap: 14px; padding: 10px 6px; border-bottom: 1px solid var(--border-color);
     border-radius: 8px; transition: background 0.12s ease;
 }
 .game-row:hover { background: var(--card-bg-alt); }
@@ -207,9 +215,6 @@ main { padding: 24px 0 60px; }
 .game-date { font-size: 11.5px; color: var(--text-muted); font-weight: 700; }
 .game-score { font-family: var(--font-display); font-weight: 800; font-size: 17px; text-align: center; min-width: 44px; padding: 0 4px; }
 .game-score .pending { font-size: 12px; color: var(--text-muted); font-weight: 700; }
-/* Hemmalagets kolumn har en FAST bredd (inte 1fr) så loggor/namn får en rak
-   vänsterkant i linje över alla rader — precis som bortalagets redan gjorde — samtidigt
-   som kolumnen inte sträcker ut sig och skapar ett stort tomrum innan "vs". */
 .game-venue { font-size: 10.5px; color: var(--text-muted); line-height: 1.25; }
 .group-heading { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 18px 0 6px; }
 .group-heading:first-child { margin-top: 0; }
@@ -250,7 +255,7 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
 .footer-credit { font-size: 11px; font-weight: 700; color: var(--text-muted); opacity: 0.7; letter-spacing: 0.02em; margin-top: 4px; }
 
 @media (max-width: 560px) {
-    .game-row { grid-template-columns: 50px 130px auto 1fr 62px; column-gap: 6px; }
+    .game-row { grid-template-columns: 74px 110px 40px 1fr 62px; column-gap: 8px; }
     .game-date { font-size: 10px; }
     .game-venue { font-size: 9px; }
 }
