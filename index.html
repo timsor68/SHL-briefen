@@ -258,9 +258,9 @@ const TEAM_STYLE = {
     'Timrå IK': { code: 'TIK', color: '#005BAC', text: '#fff' },
     'Växjö Lakers HC': { code: 'VLH', color: '#0B6E3D', text: '#fff' },
     'Örebro HK': { code: 'ÖHK', color: '#111111', text: '#E4002B' },
-    'Leksands IF': { code: 'LIF', color: '#005BAC', text: '#F5C518' },
     // HockeyAllsvenskan
     'AIK': { code: 'AIK', color: '#000000', text: '#FFD700' },
+    'Leksands IF': { code: 'LIF', color: '#005BAC', text: '#F5C518' },
     'Almtuna IS': { code: 'ALM', color: '#F5C518', text: '#111' },
     'BIK Karlskoga': { code: 'BIK', color: '#0057A8', text: '#fff' },
     'IK Oskarshamn': { code: 'IKO', color: '#0057A8', text: '#fff' },
@@ -276,6 +276,18 @@ const TEAM_STYLE = {
 };
 function teamStyle(name) {
     return TEAM_STYLE[name] || { code: (name || '??').substring(0, 3).toUpperCase(), color: '#64748b', text: '#fff' };
+}
+
+/* Bare club-name keywords for classifying general news articles into SHL vs
+   HockeyAllsvenskan (see loadNewsForLeague below). Not exhaustive/perfect — e.g. the
+   keyword "aik" also occurs inside "Skellefteå AIK" (an SHL club), so a Skellefteå
+   article could get pulled into the Allsvenskan list too. Good enough for sorting a
+   general blog feed; the official per-league RSS feeds are never affected by this. */
+const SHL_TEAM_KEYWORDS = ['brynäs', 'djurgården', 'djurgårdens', 'frölunda', 'färjestad', 'hv71', 'hv 71', 'björklöven', 'malmö redhawks', 'linköping', 'luleå', 'rögle', 'skellefteå', 'timrå', 'växjö lakers', 'örebro hk'];
+const ALLSV_TEAM_KEYWORDS = ['aik', 'almtuna', 'karlskoga', 'oskarshamn', 'kalmar hc', 'modo', 'mora ik', 'nybro', 'södertälje', 'vimmerby', 'visby', 'roma', 'västerås', 'östersund', 'leksand'];
+function articleMentionsAny(article, keywords) {
+    const text = (article.title + ' ' + article.description).toLowerCase();
+    return keywords.some(k => text.includes(k));
 }
 
 /* =========================================================
@@ -337,19 +349,20 @@ let currentLeague = 'shl';
 let currentTab = 'news';
 let currentStat = 'scoring';
 let siteData = null; // parsed shl-briefen-data.json
-let newsLoaded = false;
+let newsState = { general: null, byLeague: { shl: null, allsvenskan: null } };
 
 function setLeague(league) {
     currentLeague = league;
     document.querySelectorAll('.league-btn').forEach(b => b.classList.toggle('active', b.dataset.league === league));
     document.body.classList.toggle('league-allsvenskan', league === 'allsvenskan');
     renderAll();
+    if (currentTab === 'news') showNewsForLeague(league);
 }
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'section-' + tab));
-    if (tab === 'news' && !newsLoaded) loadNews();
+    if (tab === 'news') showNewsForLeague(currentLeague);
 }
 function setStat(stat) {
     currentStat = stat;
@@ -491,8 +504,11 @@ function renderStats() {
    hård timeout per källa så en trög/nere källa aldrig hänger upp hela
    listan.
 ========================================================= */
-const NEWS_FEEDS = [
-    { name: 'SHL.se', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.shl.se/api/articles/rss') },
+const LEAGUE_NEWS_FEED = {
+    shl: { name: 'SHL.se', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.shl.se/api/articles/rss') },
+    allsvenskan: { name: 'Hockeyallsvenskan.se', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.hockeyallsvenskan.se/api/articles/rss') },
+};
+const GENERAL_NEWS_FEEDS = [
     { name: 'Hockeysverige', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://hockeysverige.se/feed/') },
     { name: 'SVT Sport Ishockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svt.se/sport/ishockey/rss.xml') },
     { name: 'Dagens Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dagenshockey.se/feed/') }
@@ -556,17 +572,40 @@ function renderArticles(articles) {
         </div>
     `).join('');
 }
-async function loadNews() {
+async function ensureGeneralNews() {
+    if (newsState.general) return newsState.general;
+    const results = await Promise.all(GENERAL_NEWS_FEEDS.map(fetchRssFeed));
+    newsState.general = results.flat();
+    return newsState.general;
+}
+async function loadNewsForLeague(league) {
     renderNewsSkeleton();
-    const results = await Promise.all(NEWS_FEEDS.map(fetchRssFeed));
-    const merged = results.flat().sort((a, b) => b.pubDate - a.pubDate);
-    newsLoaded = true;
-    renderArticles(merged.slice(0, 40));
+    const mine = league === 'shl' ? SHL_TEAM_KEYWORDS : ALLSV_TEAM_KEYWORDS;
+    const other = league === 'shl' ? ALLSV_TEAM_KEYWORDS : SHL_TEAM_KEYWORDS;
+    const [official, general] = await Promise.all([
+        fetchRssFeed(LEAGUE_NEWS_FEED[league]),
+        ensureGeneralNews()
+    ]);
+    // A general-feed article belongs in this league's list if it names one of this
+    // league's clubs, OR names no club from EITHER league (e.g. schedule releases,
+    // referee news, VM-coverage) — but not if it's clearly about the other league only.
+    const relevant = general.filter(a => articleMentionsAny(a, mine) || !articleMentionsAny(a, other));
+    const merged = official.concat(relevant).sort((a, b) => b.pubDate - a.pubDate);
+    newsState.byLeague[league] = merged;
+    if (currentLeague === league && currentTab === 'news') renderArticles(merged.slice(0, 40));
+}
+function showNewsForLeague(league) {
+    const cached = newsState.byLeague[league];
+    if (cached) {
+        renderArticles(cached.slice(0, 40));
+    } else {
+        loadNewsForLeague(league);
+    }
 }
 
 /* Init */
 loadData();
-loadNews();
+loadNewsForLeague(currentLeague);
 </script>
 </body>
 </html>
