@@ -512,8 +512,22 @@ const GENERAL_NEWS_FEEDS = [
     { name: 'Expressen Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://feeds.expressen.se/hockey') },
     { name: 'Hockeysverige', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://hockeysverige.se/feed/') },
     { name: 'SVT Sport Ishockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svt.se/sport/ishockey/rss.xml') },
-    { name: 'Dagens Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dagenshockey.se/feed/') }
+    { name: 'Dagens Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dagenshockey.se/feed/') },
+    { name: 'SvenskaFans Hockeyzon', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svenskafans.com/rss/site/7') },
+    // Lokaltidningar (NTM-koncernen) — täcker enskilda klubbar djupare än rikstäckande
+    // källor, men blandar hockey med annan lokal sport, därav mixedSports:true.
+    { name: 'Corren (Linköping)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.corren.se/rss/sport'), mixedSports: true },
+    { name: 'NSD (Luleå)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.nsd.se/rss/sport'), mixedSports: true },
+    { name: 'Norran (Skellefteå)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.norran.se/rss/sport'), mixedSports: true },
+    { name: 'UNT (Uppsala)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.unt.se/rss/sport'), mixedSports: true },
 ];
+function isHockeyArticle(article) {
+    if (article.categories && article.categories.some(c => c.toLowerCase().includes('hockey'))) return true;
+    if (article.link && /\/(is)?hockey\//i.test(article.link)) return true;
+    const text = (article.title + ' ' + article.description).toLowerCase();
+    if (text.includes('hockey')) return true;
+    return articleMentionsAny(article, SHL_TEAM_KEYWORDS) || articleMentionsAny(article, ALLSV_TEAM_KEYWORDS);
+}
 async function fetchWithTimeout(url, options, timeoutMs = 8000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -534,7 +548,9 @@ async function fetchRssFeed(feed) {
                 description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 180) + '…' : '',
                 pubDate: new Date(item.pubDate),
                 source: feed.name,
-                thumbnail: item.thumbnail || (item.enclosure && item.enclosure.link) || ''
+                thumbnail: item.thumbnail || (item.enclosure && item.enclosure.link) || '',
+                categories: item.categories || [],
+                mixedSports: !!feed.mixedSports
             }));
         }
     } catch (e) {
@@ -576,7 +592,7 @@ function renderArticles(articles) {
 async function ensureGeneralNews() {
     if (newsState.general) return newsState.general;
     const results = await Promise.all(GENERAL_NEWS_FEEDS.map(fetchRssFeed));
-    newsState.general = results.flat();
+    newsState.general = results.flat().filter(a => !a.mixedSports || isHockeyArticle(a));
     return newsState.general;
 }
 async function loadNewsForLeague(league) {
