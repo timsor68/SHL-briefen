@@ -510,10 +510,16 @@ const LEAGUE_NEWS_FEED = {
 };
 const GENERAL_NEWS_FEEDS = [
     { name: 'Expressen Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://feeds.expressen.se/hockey') },
+    { name: 'Aftonbladet Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://rss.aftonbladet.se/rss2/small/pages/sections/sportbladet/hockey/') },
     { name: 'Hockeysverige', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://hockeysverige.se/feed/') },
     { name: 'SVT Sport Ishockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svt.se/sport/ishockey/rss.xml') },
     { name: 'Dagens Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dagenshockey.se/feed/') },
     { name: 'SvenskaFans Hockeyzon', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svenskafans.com/rss/site/7') },
+    // Bredare sport/nyhetsflöden, verifierade live av Timo (skärmdumpar 10/8) men inte
+    // hockeyspecifika — DN:s täcker all sport (kula, simning, fotboll...), SvD:s täcker
+    // HELA sajten (även politik). Båda går igenom samma hockeyfilter som lokaltidningarna.
+    { name: 'DN Sport', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dn.se/rss/sport'), mixedSports: true },
+    { name: 'SvD', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svd.se/feed/articles.rss'), mixedSports: true },
     // Lokaltidningar (NTM-koncernen) — täcker enskilda klubbar djupare än rikstäckande
     // källor, men blandar hockey med annan lokal sport, därav mixedSports:true.
     { name: 'Corren (Linköping)', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.corren.se/rss/sport'), mixedSports: true },
