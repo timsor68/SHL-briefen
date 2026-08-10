@@ -126,9 +126,28 @@ def parse_standings(soup):
     return rows
 
 
+# Matches a cell whose *entire* text is "Home Team - Away Team". Anchored (^...$) and
+# requires at least one letter on each side so it can't accidentally match a bare score
+# cell like "10 - 12" (some periods/overtime scores are 2+ digits too, so digit-count
+# alone isn't a safe discriminator — letters are, since every team name has some).
+TEAM_VS_RE = re.compile(r"^(.{2,45})\s-\s(.{2,45})$")
+
+
+def _has_letter(s):
+    return any(ch.isalpha() for ch in s)
+
+
 def parse_games_table(table):
-    """Parses one Schedule or Results table. Distinguishes played vs upcoming by whether
-    a 'Result' column exists and whether that cell actually has a score in it."""
+    """Parses one Schedule or Results table.
+
+    stats.swehockey.se's schedule/results tables sometimes carry extra hidden/empty
+    columns (varies by league and by season), so the "Team - Team" cell doesn't always
+    sit at a fixed column index. Instead of assuming a column position, we scan every
+    cell in the row and pick the one that actually matches the "Lag - Lag" pattern
+    (with a letter on both sides, to rule out score cells like "3 - 2"). The result
+    score and venue are then read relative to *that* cell's position, not a hardcoded
+    index, so the parser keeps working even if swehockey adds/removes columns.
+    """
     ht = header_text_of(table)
     if "date" not in ht or "game" not in ht:
         return []
@@ -141,25 +160,54 @@ def parse_games_table(table):
         if not re.match(r"\d{4}-\d{2}-\d{2}", texts[0]):
             continue
         date_raw = texts[0]
-        game_text = texts[1] if len(texts) > 1 else ""
-        parts = re.split(r"\s+-\s+", game_text)
-        home = parts[0].strip() if len(parts) > 0 else ""
-        away = parts[1].strip() if len(parts) > 1 else game_text
+
+        game_idx = None
+        home, away = "", ""
+        for i, t in enumerate(texts[1:], start=1):
+            m = TEAM_VS_RE.match(t)
+            if m and _has_letter(m.group(1)) and _has_letter(m.group(2)):
+                home, away = m.group(1).strip(), m.group(2).strip()
+                game_idx = i
+                break
+
+        if game_idx is None:
+            # Nothing matched the "Lag - Lag" pattern at all (unexpected row shape) —
+            # fall back to the old column-1 assumption rather than dropping the row.
+            game_text = texts[1] if len(texts) > 1 else ""
+            parts = re.split(r"\s+-\s+", game_text)
+            home = parts[0].strip() if len(parts) > 0 else ""
+            away = parts[1].strip() if len(parts) > 1 else game_text
+            game_idx = 1
+
         entry = {"date": date_raw, "home": home, "away": away, "played": False}
-        if has_result_col and len(texts) > 2:
-            sm = re.match(r"(\d+)\s*-\s*(\d+)", texts[2])
-            if sm:
-                entry["homeScore"] = int(sm.group(1))
-                entry["awayScore"] = int(sm.group(2))
-                entry["played"] = True
-                if len(texts) > 3 and re.search(r"\d", texts[3]):
-                    entry["periods"] = texts[3].strip("() ")
-                if len(texts) > 5:
-                    entry["venue"] = texts[-1]
-                elif len(texts) > 4:
-                    entry["venue"] = texts[-1]
-        if "venue" not in entry:
-            entry["venue"] = texts[-1] if len(texts) > 2 and texts[-1] != game_text else ""
+
+        # Result: scan cells after the game cell for a "N - N" score (not anchored to
+        # a fixed offset, since the number of columns between game and result varies).
+        result_idx = None
+        if has_result_col:
+            for i in range(game_idx + 1, len(texts)):
+                sm = re.match(r"^(\d+)\s*-\s*(\d+)$", texts[i])
+                if sm:
+                    entry["homeScore"] = int(sm.group(1))
+                    entry["awayScore"] = int(sm.group(2))
+                    entry["played"] = True
+                    result_idx = i
+                    break
+
+        # Venue/periods: whatever non-empty text remains after the game (and result,
+        # if any) cell. The periods cell (e.g. "(20-15-10)") is distinguished from the
+        # venue by containing a digit; venue text normally doesn't.
+        start = (result_idx if result_idx is not None else game_idx) + 1
+        remaining = [c for c in texts[start:] if c and c not in ("-", "—")]
+        if remaining:
+            if entry["played"] and re.search(r"\d", remaining[0]) and len(remaining) > 1:
+                entry["periods"] = remaining[0].strip("() ")
+                entry["venue"] = remaining[-1]
+            else:
+                entry["venue"] = remaining[-1]
+        else:
+            entry["venue"] = ""
+
         games.append(entry)
     return games
 

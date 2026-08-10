@@ -22,31 +22,44 @@
     --text-muted: #64748b;
     --border-color: #e2e8f0;
     --shl-navy: #0B2545;
+    --shl-navy-2: #050f22;
     --shl-gold: #D4A017;
     --allsv-teal: #0f5c56;
+    --allsv-teal-2: #06302c;
     --danger: #d5342b;
     --font-display: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
     --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
     --shadow-md: 0 2px 6px rgba(15,23,42,0.05), 0 10px 24px rgba(15,23,42,0.07);
     --accent: var(--shl-navy);
+    --accent-2: var(--shl-navy-2);
 }
 * { box-sizing: border-box; }
 body {
     margin: 0; background: var(--bg-color); color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
-body.league-allsvenskan { --accent: var(--allsv-teal); }
+body.league-allsvenskan { --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2); }
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
-    background: var(--accent); color: #fff; padding: 18px 0 0;
-    transition: background 0.2s ease;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: #fff; padding: 18px 0 0; position: relative; overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 8px 24px rgba(0,0,0,0.18);
+    transition: background 0.25s ease;
 }
+header.top::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+        radial-gradient(circle at 88% -30%, rgba(255,255,255,0.16), transparent 55%),
+        radial-gradient(circle at 8% 120%, rgba(255,255,255,0.08), transparent 45%);
+}
+header.top .wrap { position: relative; }
 .top-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-bottom: 14px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark {
     width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,0.14);
     display: flex; align-items: center; justify-content: center; font-size: 22px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 4px 10px rgba(0,0,0,0.2);
 }
 .brand-text h1 {
     margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: 0.01em;
@@ -56,28 +69,34 @@ header.top {
 .league-btn {
     border: none; background: transparent; color: rgba(255,255,255,0.75); font-weight: 700; font-size: 13px;
     padding: 7px 14px; border-radius: 7px; cursor: pointer; font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
 }
-.league-btn.active { background: #fff; color: var(--shl-navy); }
+.league-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: #fff; }
+.league-btn.active { background: #fff; color: var(--shl-navy); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 body.league-allsvenskan .league-btn.active { color: var(--allsv-teal); }
 nav.tabs { display: flex; gap: 4px; overflow-x: auto; }
 .tab-btn {
     border: none; background: transparent; color: rgba(255,255,255,0.65); font-weight: 700; font-size: 14.5px;
     padding: 10px 16px 12px; cursor: pointer; font-family: inherit; border-bottom: 3px solid transparent; white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease;
 }
+.tab-btn:hover:not(.active) { color: rgba(255,255,255,0.9); }
 .tab-btn.active { color: #fff; border-bottom-color: var(--shl-gold); }
 main { padding: 24px 0 60px; }
 .section { display: none; }
 .section.active { display: block; }
 .card {
     background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px;
-    box-shadow: var(--shadow-sm); padding: 18px 20px; margin-bottom: 16px;
+    box-shadow: var(--shadow-md); padding: 18px 20px; margin-bottom: 16px;
+    border-top: 3px solid var(--accent);
 }
 .card h2 { margin: 0 0 14px; font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--accent); }
 .status { text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 14px; }
 .season-tag { font-size: 11.5px; font-weight: 700; color: var(--text-muted); background: var(--card-bg-alt); padding: 3px 9px; border-radius: 20px; margin-left: 8px; }
 
 /* --- News --- */
-.article { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border-color); }
+.article { display: flex; gap: 14px; padding: 14px 8px; margin: 0 -8px; border-bottom: 1px solid var(--border-color); border-radius: 8px; transition: background 0.12s ease; }
+.article:hover { background: var(--card-bg-alt); }
 .article:last-child { border-bottom: none; }
 .article-thumb { width: 92px; height: 66px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--card-bg-alt); }
 .article-content { min-width: 0; }
@@ -97,10 +116,12 @@ main { padding: 24px 0 60px; }
 /* --- Team badge --- */
 .team-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .team-dot { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #fff; }
+.team-logo { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; object-fit: contain; background: #fff; padding: 2px; box-shadow: 0 0 0 1px var(--border-color); }
 .team-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Matches --- */
-.game-row { display: grid; grid-template-columns: 78px 1fr auto 1fr; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border-color); }
+.game-row { display: grid; grid-template-columns: 78px 1fr auto 1fr; align-items: center; gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--border-color); border-radius: 8px; transition: background 0.12s ease; }
+.game-row:hover { background: var(--card-bg-alt); }
 .game-row:last-child { border-bottom: none; }
 .game-date { font-size: 11.5px; color: var(--text-muted); font-weight: 700; }
 .game-score { font-family: var(--font-display); font-weight: 800; font-size: 17px; text-align: center; min-width: 56px; }
@@ -116,6 +137,8 @@ table.standings th:nth-child(2) { text-align: left; }
 table.standings td { text-align: center; padding: 8px 4px; border-bottom: 1px solid var(--border-color); }
 table.standings td:nth-child(2) { text-align: left; }
 table.standings td.pts { font-weight: 800; color: var(--accent); }
+table.standings tbody tr { transition: background 0.12s ease; }
+table.standings tbody tr:hover td { background: var(--card-bg-alt); }
 table.standings tr.zone-top td:first-child { box-shadow: inset 3px 0 0 #16a34a; }
 table.standings tr.zone-bottom td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
 .rk-cell { color: var(--text-muted); font-weight: 700; }
@@ -254,8 +277,56 @@ const TEAM_STYLE = {
 function teamStyle(name) {
     return TEAM_STYLE[name] || { code: (name || '??').substring(0, 3).toUpperCase(), color: '#64748b', text: '#fff' };
 }
+
+/* =========================================================
+   Klubbmärken — riktiga loggor från SHL:s egen bildkälla (Sportality-CDN,
+   samma CDN som shl.se/hockeyallsvenskan.se själva använder för sin logga).
+   Slugsen nedan är INTE gissade: de är hämtade rakt av från de faktiska
+   lag-länkarna på shl.se/alla-lag och hockeyallsvenskan.se/alla-lag
+   (t.ex. https://shl.se/team/.../fbk1_fbk/squad -> "fbk1_fbk").
+   Lag som saknas här (inte hunnit verifieras) faller tillbaka på den
+   färgade cirkeln nedan — och gör det även om en logga skulle sluta
+   fungera, tack vare onerror-fallbacken i teamBadge().
+========================================================= */
+const TEAM_LOGO_SLUG = {
+    // SHL — verifierade 2026-08-10 via shl.se/alla-lag
+    'IF Björklöven': 'ifb1_ifb',
+    'Brynäs IF': 'bif1_bif',
+    'Djurgårdens IF': 'dif1_dif',
+    'Frölunda HC': 'fhc1_fhc',
+    'Färjestad BK': 'fbk1_fbk',
+    'HV 71': 'hv711_hv71',
+    'HV71': 'hv711_hv71',
+    'Linköping HC': 'lhc1_lhc',
+    'Luleå HF': 'lhf1_lhf',
+    'IF Malmö Redhawks': 'mif1_mif',
+    'Rögle BK': 'rbk1_rbk',
+    'Skellefteå AIK': 'saik1_saik',
+    'Timrå IK': 'tik1_tik',
+    'Växjö Lakers HC': 'vlh1_vlh',
+    'Örebro HK': 'ohk1_ohk',
+    // HockeyAllsvenskan — verifierade 2026-08-10 via hockeyallsvenskan.se/alla-lag
+    // (bara de tre som syntes i den icke-expanderade menyn hann verifieras;
+    // resten använder cirkel-badgen tills fler slugs bekräftats)
+    'AIK': 'aik1_aik',
+    'Almtuna IS': 'ais1_ais',
+    'BIK Karlskoga': 'bik1_bik',
+};
+const TEAM_LOGO_BASE = 'https://sportality.cdn.s8y.se/team-logos/';
+function teamLogoFallback(img, color, text, code) {
+    const span = document.createElement('span');
+    span.className = 'team-dot';
+    span.style.background = color;
+    span.style.color = text;
+    span.textContent = code;
+    img.replaceWith(span);
+}
 function teamBadge(name) {
     const s = teamStyle(name);
+    const slug = TEAM_LOGO_SLUG[name];
+    if (slug) {
+        return `<img class="team-logo" src="${TEAM_LOGO_BASE}${slug}.svg" alt="${name}" loading="lazy" onerror="teamLogoFallback(this,'${s.color}','${s.text}','${s.code}')">`;
+    }
     return `<span class="team-dot" style="background:${s.color};color:${s.text}">${s.code}</span>`;
 }
 
@@ -421,6 +492,7 @@ function renderStats() {
    listan.
 ========================================================= */
 const NEWS_FEEDS = [
+    { name: 'SHL.se', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.shl.se/api/articles/rss') },
     { name: 'Hockeysverige', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://hockeysverige.se/feed/') },
     { name: 'SVT Sport Ishockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.svt.se/sport/ishockey/rss.xml') },
     { name: 'Dagens Hockey', url: 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.dagenshockey.se/feed/') }
