@@ -88,29 +88,51 @@ main { padding: 24px 0 60px; }
 .card {
     background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px;
     box-shadow: var(--shadow-md); padding: 18px 20px; margin-bottom: 16px;
-    border-top: 3px solid var(--accent);
+    position: relative;
+}
+.card::before {
+    content: ""; position: absolute; top: -1px; left: -1px; right: -1px; height: 3px;
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--shl-gold) 50%, var(--accent-2) 100%);
 }
 .card h2 { margin: 0 0 14px; font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--accent); }
 .status { text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 14px; }
 .season-tag { font-size: 11.5px; font-weight: 700; color: var(--text-muted); background: var(--card-bg-alt); padding: 3px 9px; border-radius: 20px; margin-left: 8px; }
 
-/* --- News --- */
-.article { display: flex; gap: 14px; padding: 14px 8px; margin: 0 -8px; border-bottom: 1px solid var(--border-color); border-radius: 8px; transition: background 0.12s ease; }
-.article:hover { background: var(--card-bg-alt); }
-.article:last-child { border-bottom: none; }
-.article-thumb { width: 92px; height: 66px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--card-bg-alt); }
-.article-content { min-width: 0; }
+/* --- News: boxed card grid --- */
+#news { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.article {
+    display: flex; flex-direction: column; background: var(--card-bg-alt);
+    border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;
+    position: relative; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.article::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 1;
+    background: linear-gradient(90deg, var(--accent), var(--shl-gold) 60%, var(--accent-2));
+    opacity: 0; transition: opacity 0.15s ease;
+}
+.article:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--accent); }
+.article:hover::before { opacity: 1; }
+.article-thumb {
+    width: 100%; height: 140px; object-fit: cover; flex-shrink: 0; display: block;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.article-thumb-placeholder {
+    width: 100%; height: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-size: 34px; opacity: 0.8;
+}
+.article-content { min-width: 0; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
 .article-meta { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-.article-title { font-size: 15px; font-weight: 700; margin: 3px 0 4px; line-height: 1.3; }
+.article-title { font-size: 14.5px; font-weight: 700; margin: 0; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .article-title a { text-decoration: none; }
 .article-title a:hover { text-decoration: underline; }
-.article-desc { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
-.skeleton-article { display: flex; gap: 14px; padding: 14px 0; }
-.skeleton-line { background: var(--card-bg-alt); border-radius: 4px; height: 12px; margin-bottom: 8px; animation: pulse 1.4s ease-in-out infinite; }
-.skeleton-meta { width: 30%; height: 9px; }
-.skeleton-title { width: 90%; height: 15px; }
-.skeleton-text { width: 70%; }
-.skeleton-box { width: 92px; height: 66px; border-radius: 8px; background: var(--card-bg-alt); animation: pulse 1.4s ease-in-out infinite; flex-shrink: 0; }
+.article-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.skeleton-article { display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; background: var(--card-bg-alt); }
+.skeleton-line { background: var(--border-color); border-radius: 4px; height: 12px; margin-bottom: 8px; animation: pulse 1.4s ease-in-out infinite; }
+.skeleton-meta { width: 40%; height: 9px; }
+.skeleton-title { width: 95%; height: 15px; }
+.skeleton-text { width: 80%; }
+.skeleton-box { width: 100%; height: 140px; background: var(--border-color); animation: pulse 1.4s ease-in-out infinite; flex-shrink: 0; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 /* --- Team badge --- */
@@ -139,8 +161,12 @@ table.standings td:nth-child(2) { text-align: left; }
 table.standings td.pts { font-weight: 800; color: var(--accent); }
 table.standings tbody tr { transition: background 0.12s ease; }
 table.standings tbody tr:hover td { background: var(--card-bg-alt); }
-table.standings tr.zone-top td:first-child { box-shadow: inset 3px 0 0 #16a34a; }
-table.standings tr.zone-bottom td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+table.standings tr.zone-top td { background: linear-gradient(90deg, rgba(22,163,74,0.13), rgba(22,163,74,0) 55%); }
+table.standings tr.zone-bottom td { background: linear-gradient(90deg, rgba(213,52,43,0.13), rgba(213,52,43,0) 55%); }
+table.standings tr.zone-top:hover td { background: linear-gradient(90deg, rgba(22,163,74,0.24), rgba(22,163,74,0.03) 55%); }
+table.standings tr.zone-bottom:hover td { background: linear-gradient(90deg, rgba(213,52,43,0.24), rgba(213,52,43,0.03) 55%); }
+table.standings tr.zone-top td:first-child { box-shadow: inset 4px 0 0 0 #16a34a; }
+table.standings tr.zone-bottom td:first-child { box-shadow: inset 4px 0 0 0 var(--danger); }
 .rk-cell { color: var(--text-muted); font-weight: 700; }
 
 /* --- Stats table --- */
@@ -685,14 +711,14 @@ async function fetchRssFeed(feed) {
 }
 function renderNewsSkeleton() {
     let html = '';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
         html += `<div class="skeleton-article">
+            <div class="skeleton-box"></div>
             <div class="article-content" style="width:100%">
                 <div class="skeleton-line skeleton-meta"></div>
                 <div class="skeleton-line skeleton-title"></div>
                 <div class="skeleton-line skeleton-text"></div>
             </div>
-            <div class="skeleton-box"></div>
         </div>`;
     }
     document.getElementById('news').innerHTML = html;
@@ -705,7 +731,9 @@ function renderArticles(articles) {
     }
     el.innerHTML = articles.map(a => `
         <div class="article">
-            ${a.thumbnail ? `<img class="article-thumb" src="${a.thumbnail}" loading="lazy" onerror="this.remove()" />` : ''}
+            ${a.thumbnail
+                ? `<img class="article-thumb" src="${a.thumbnail}" loading="lazy" onerror="this.outerHTML='<div class=&quot;article-thumb-placeholder&quot;>🏒</div>'" />`
+                : `<div class="article-thumb-placeholder">🏒</div>`}
             <div class="article-content">
                 <div class="article-meta">${a.source} · ${a.pubDate.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}</div>
                 <div class="article-title"><a href="${a.link}" target="_blank" rel="noopener">${a.title}</a></div>
