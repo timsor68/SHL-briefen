@@ -32,31 +32,22 @@
     --shadow-md: 0 2px 6px rgba(15,23,42,0.05), 0 10px 24px rgba(15,23,42,0.07);
     --accent: var(--shl-navy);
     --accent-2: var(--shl-navy-2);
-    --bg-glow-a: #0b254522;
-    --bg-glow-b: #d4a01720;
 }
 * { box-sizing: border-box; }
 body {
     margin: 0; color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
-    /* Subtila, färgtonade "aurora"-blobbar i hörnen (byter nyans med liga via
-       --bg-glow-a/b) plus ett mycket lätt punktraster för struktur, så de tomma
-       marginalerna utanför innehållskolumnen inte känns helt platta och livlösa. */
-    background-image:
-        radial-gradient(circle at 6% 4%, var(--bg-glow-a), transparent 30%),
-        radial-gradient(circle at 96% 10%, var(--bg-glow-b), transparent 26%),
-        radial-gradient(circle at 92% 96%, var(--bg-glow-a), transparent 28%),
-        radial-gradient(circle at 3% 90%, var(--bg-glow-b), transparent 24%),
-        radial-gradient(circle, rgba(15,23,42,0.05) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 24px 24px;
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
-    background-attachment: fixed, fixed, fixed, fixed, scroll;
+    /* Sömlös vertikal tona: sidan startar i ligans mörka accentfärg (samma nyans som
+       headern) direkt under headern och tonar sedan mjukt över till den ljusa
+       bakgrundsfärgen. Ingen upprepning, ingen synlig söm — slutfärgen på gradienten
+       är EXAKT samma som background-color, så övergången till den flata resten av
+       sidan (oavsett hur lång den är) syns inte. Byter automatiskt nyans mellan SHL
+       (navy) och HockeyAllsvenskan (grön) via --accent, som redan togglas per liga. */
+    background-image: linear-gradient(180deg, var(--accent) 0%, var(--bg-color) 760px);
+    background-repeat: no-repeat;
 }
-body.league-allsvenskan {
-    --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2);
-    --bg-glow-a: #0f5c5622; --bg-glow-b: #06302c1c;
-}
+body.league-allsvenskan { --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2); }
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
