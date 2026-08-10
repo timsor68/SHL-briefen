@@ -195,26 +195,29 @@ main { padding: 24px 0 60px; }
 .team-dot { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #fff; }
 .team-logo { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; object-fit: contain; background: #fff; padding: 2px; box-shadow: 0 0 0 1px var(--border-color); }
 .team-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Hemmalagets logga står KVAR på fast x-position (badgen har ingen flex-tillväxt,
-   så den rör sig aldrig ur sin raka linje). Men själva NAMNET får flex:1 + högerjustering
-   så att det alltid slutar precis intill VS — precis som bortalagets namn alltid BÖRJAR
-   precis intill VS. Det är den luckan (namn-slut till VS) som annars blir olika stor
-   beroende på om hemmalaget heter "AIK" eller "IF Malmö Redhawks", vilket gjorde att VS
-   såg omcentrerat ut. Nu blir avståndet till VS symmetriskt på båda sidor oavsett
-   lagnamnens längd, samtidigt som loggan aldrig flyttar sig. */
-.team-row.home .team-name { flex: 1; text-align: right; }
 
 /* --- Matches --- */
 /* Alla fem kolumnerna har FASTA bredder (inte 1fr, förutom bortalaget som får
    resterande utrymme) så att varje del bildar en rak linje över alla rader:
    - datum: bred nog att lämna luft innan hemmalaget börjar
-   - hemmalag: vänsterjusterad, fast bredd -> logga/namn i rak linje
-   - vs/resultat: liten fast bredd, centrerad -> hamnar ungefär mitt emellan
-     hemmalagets och bortalagets namn utan att vandra rad för rad
+   - hemmalag: vänsterjusterad, fast bredd -> logga/namn i rak linje, SAMMA
+     behandling (logga+8px-mellanrum+namn, vänsterjusterat) som bortalaget —
+     ingen specialjustering av bara namnet.
+   - vs/resultat: liten fast bredd, centrerad
    - bortalag: vänsterjusterad direkt efter vs, tar upp resten av utrymmet
-   - arena: egen kolumn längst till höger */
+   - arena: egen kolumn längst till höger
+   Hemmalagskolumnens bredd (142px) är räknad, inte gissad: med fast bredd och
+   vänsterjustering (som ovan) hamnar VS-kolumnen exakt lika långt från slutet av
+   hemmalagsnamnet som från början av bortalagsnamnet ENDAST för just detta
+   textinnehåll — 142px = 2×(loggbredd 22px + mellanrum 8px) + textbredden för
+   "Frölunda HC" (uppskattad ≈82px vid 13.5px/600, mittemellan Liberation Sans
+   regular/bold-mätning, som ungefärlig stand-in för Segoe UI/-apple-system).
+   Eftersom alla rader delar SAMMA fasta kolumnbredder ligger VS i en rak linje
+   på alla rader — första kommande matchen (Frölunda HC–Växjö Lakers HC) blir
+   centrerad, övriga matcher får ett annat (inte nödvändigtvis centrerat)
+   avstånd beroende på lagnamnens längd, per önskemål. */
 .game-row {
-    display: grid; grid-template-columns: 150px 210px 62px 1fr 130px; align-items: center;
+    display: grid; grid-template-columns: 150px 142px 62px 1fr 130px; align-items: center;
     column-gap: 14px; padding: 10px 6px; border-bottom: 1px solid var(--border-color);
     border-radius: 8px; transition: background 0.12s ease;
 }
