@@ -82,11 +82,14 @@ header.top .wrap { position: relative; }
 .top-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-bottom: 14px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark {
-    /* Ingen bakgrundsruta — pokalbilden är redan urklippt (transparent PNG), så den
-       ska synas fritt mot sidans bakgrund utan någon egen box runt om. */
-    display: flex; align-items: center; justify-content: center; height: 48px;
+    /* Silvermyntet med SHL-pokalen som logga — rent cirkulärt urklipp (ingen ruta,
+       ingen gloria). Byts till HockeyAllsvenskan-myntet automatiskt när ligan växlas. */
+    width: 46px; height: 46px; flex-shrink: 0;
+    background-image: url('assets/shl-coin.png');
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
 }
-.brand-mark img { height: 100%; width: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+body.league-allsvenskan .brand-mark { background-image: url('assets/allsvenskan-coin.png'); }
 .brand-text .tagline { font-size: 12.5px; opacity: 0.75; margin-top: 1px; }
 /* Stor "kromad" hero-logotyp, som i arena-designen: ljus stål/is-toning i själva
    texten (background-clip:text) + en stapel av tunna, allt mörkare text-shadow-lager
@@ -182,7 +185,11 @@ main { padding: 24px 0 60px; }
     width: 100%; height: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
 }
-.article-thumb-placeholder.puck img { width: 58px; height: auto; opacity: 0.9; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.45)); }
+.article-thumb-placeholder.coin {
+    background-image: url('assets/shl-coin.png'), linear-gradient(135deg, var(--accent), var(--accent-2));
+    background-size: 78px 78px, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
+}
+body.league-allsvenskan .article-thumb-placeholder.coin { background-image: url('assets/allsvenskan-coin.png'), linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .article-thumb-logo-wrap {
     width: 68px; height: 68px; border-radius: 50%; background: #fff; padding: 10px;
     display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.25);
@@ -372,7 +379,7 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
 <header class="top">
     <div class="wrap top-inner">
         <div class="brand">
-            <div class="brand-mark"><img src="assets/trophy-icon.png" alt="SHL-briefen"></div>
+            <div class="brand-mark" role="img" aria-label="SHL-briefen"></div>
             <div class="brand-text">
                 <div class="tagline">Svensk elithockey — nyheter, tabeller &amp; statistik</div>
             </div>
@@ -649,7 +656,7 @@ function articleTeamThumb(team) {
 }
 function handleThumbError(img) {
     const team = img.dataset.team || '';
-    img.outerHTML = team ? articleTeamThumb(team) : '<div class="article-thumb-placeholder puck"><img src="assets/puck-icon.png" alt=""></div>';
+    img.outerHTML = team ? articleTeamThumb(team) : '<div class="article-thumb-placeholder coin"></div>';
 }
 
 /* =========================================================
@@ -1135,7 +1142,7 @@ function renderArticles(articles) {
         const team = detectArticleTeam(a);
         const media = a.thumbnail
             ? `<img class="article-thumb" src="${a.thumbnail}" data-team="${team || ''}" loading="lazy" onerror="handleThumbError(this)" />`
-            : (team ? articleTeamThumb(team) : '<div class="article-thumb-placeholder puck"><img src="assets/puck-icon.png" alt=""></div>');
+            : (team ? articleTeamThumb(team) : '<div class="article-thumb-placeholder coin"></div>');
         return `
         <div class="article">
             ${media}
