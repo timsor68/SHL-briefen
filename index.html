@@ -70,17 +70,21 @@ body.league-allsvenskan {
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
-    /* Äkta arenafoto som bakgrund (strålkastare + is), med en mörk tonings-gradient
-       ovanpå för läsbarhet och en mjuk nedtoning mot sidans --bg-color längst ner så
-       övergången till resten av sidan blir sömlös. Bytt per liga nedan (blått/grönt). */
+    /* Fullskärms hero: hela arenafotot får ta plats (inte bara en smal remsa högst
+       upp), med logga, liga-växlare och flikar liggande direkt ovanpå bilden istället
+       för i en avgränsad "header-box". En mörk tonings-gradient ovanpå ger läsbarhet
+       och en mjuk nedtoning mot sidans --bg-color längst ner så övergången till
+       resten av sidan blir sömlös. Bytt per liga nedan (blått/grönt). */
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: clamp(420px, 58vw, 680px);
     background-image:
-        linear-gradient(180deg, rgba(2,6,14,0.10) 0%, rgba(2,6,14,0.5) 60%, var(--bg-color) 100%),
-        linear-gradient(0deg, color-mix(in srgb, var(--accent-2) 60%, transparent) 0%, transparent 45%),
+        linear-gradient(180deg, rgba(2,6,14,0.08) 0%, rgba(2,6,14,0.4) 65%, var(--bg-color) 100%),
+        linear-gradient(0deg, color-mix(in srgb, var(--accent-2) 55%, transparent) 0%, transparent 40%),
         url('assets/shl-bg.jpg');
     background-size: cover, cover, cover;
-    background-position: center bottom, center bottom, center 35%;
+    background-position: center center, center bottom, center center;
     background-repeat: no-repeat;
-    color: #fff; padding: 24px 0 0; position: relative; overflow: hidden;
+    color: #fff; padding: 20px 0 0; position: relative; overflow: hidden;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     border-bottom: 2px solid var(--glow);
     transition: background-image 0.3s ease;
@@ -374,6 +378,7 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
        164px ≈ +30%) eftersom datumtextens bredd vid 10px faktiskt överskrider
        den smala mobil-kolumnen — den bokstavliga "luftrums"-uträkningen från
        desktop går inte att återanvända rakt av här. */
+    header.top { min-height: 360px; }
     .game-row { grid-template-columns: 74px 1fr 62px; column-gap: 8px; }
     .game-date { font-size: 10px; }
     .team-row.home { left: 82px; }
