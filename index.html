@@ -70,16 +70,26 @@ body.league-allsvenskan {
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
-    /* Lagrad bakgrund: strålkastarglöd underifrån, svaga skridskospår i isen, mörk bas. */
-    background:
-        radial-gradient(ellipse at bottom, color-mix(in srgb, var(--glow) 35%, transparent) 0%, transparent 65%),
-        repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 30px),
-        repeating-linear-gradient(65deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 45px),
-        linear-gradient(135deg, var(--bg-color) 0%, var(--accent-2) 50%, #000000 100%);
+    /* Äkta arenafoto som bakgrund (strålkastare + is), med en mörk tonings-gradient
+       ovanpå för läsbarhet och en mjuk nedtoning mot sidans --bg-color längst ner så
+       övergången till resten av sidan blir sömlös. Bytt per liga nedan (blått/grönt). */
+    background-image:
+        linear-gradient(180deg, rgba(2,6,14,0.10) 0%, rgba(2,6,14,0.5) 60%, var(--bg-color) 100%),
+        linear-gradient(0deg, color-mix(in srgb, var(--accent-2) 60%, transparent) 0%, transparent 45%),
+        url('assets/shl-bg.jpg');
+    background-size: cover, cover, cover;
+    background-position: center bottom, center bottom, center 35%;
+    background-repeat: no-repeat;
     color: #fff; padding: 24px 0 0; position: relative; overflow: hidden;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     border-bottom: 2px solid var(--glow);
-    transition: all 0.3s ease;
+    transition: background-image 0.3s ease;
+}
+body.league-allsvenskan header.top {
+    background-image:
+        linear-gradient(180deg, rgba(1,12,9,0.10) 0%, rgba(1,12,9,0.5) 60%, var(--bg-color) 100%),
+        linear-gradient(0deg, color-mix(in srgb, var(--accent-2) 60%, transparent) 0%, transparent 45%),
+        url('assets/allsvenskan-bg.jpg');
 }
 header.top::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
