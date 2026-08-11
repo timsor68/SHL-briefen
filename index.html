@@ -21,7 +21,7 @@
        text/accentfärg som annars skulle bli oläslig i mörk navy mot ett mörkt kort. */
     --bg-color: #060a14;
     --bg-color-2: #0b1424;
-    --card-bg: rgba(16, 24, 42, 0.88);
+    --card-bg: rgba(14, 21, 38, 0.74);
     --card-bg-alt: #182640;
     --text-main: #eef2f9;
     --text-muted: #8d9bb8;
@@ -47,59 +47,36 @@ body {
     margin: 0; color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
-    /* Mörk arenakänsla över hela sidan: en svag vinjett plus två mjuka "strålkastar"-
-       glöd i ligans neonfärg (--glow), starkast högst upp bakom hero-logotypen och
-       avtagande nedåt. Ingen upprepning eller synliga sömmar — allt tonar ut i den
-       flata mörka bottenfärgen (som är EXAKT samma som background-color) oavsett hur
-       lång sidan är. Byter automatiskt nyans mellan SHL (isblå) och HockeyAllsvenskan
-       (grön) via --glow, som redan togglas per liga nedan. */
+    /* Arenafotot är EN obruten bild som täcker hela sidan — fast bakgrund (attachment:
+       fixed) som ligger kvar bakom allt innehåll oavsett hur långt man scrollar, så det
+       aldrig blir ett synligt "streck" eller en gräns mellan header och resten av
+       sidan. En jämn mörk toning ligger ovanpå för läsbarhet, men själva fotot är
+       alltid ett enda sammanhängande lager, aldrig upprepat eller avklippt i sektioner.
+       Byts per liga nedan (blått för SHL, grönt för HockeyAllsvenskan). */
     background-image:
-        radial-gradient(ellipse 900px 500px at 50% 0%, color-mix(in srgb, var(--glow) 22%, transparent), transparent 70%),
-        radial-gradient(ellipse 700px 420px at 12% 6%, color-mix(in srgb, var(--glow) 14%, transparent), transparent 65%),
-        radial-gradient(ellipse 700px 420px at 88% 8%, color-mix(in srgb, var(--glow) 14%, transparent), transparent 65%),
-        linear-gradient(180deg, var(--bg-color-2) 0%, var(--bg-color) 900px);
+        linear-gradient(180deg, color-mix(in srgb, var(--bg-color) 45%, transparent) 0%, color-mix(in srgb, var(--bg-color) 82%, transparent) 100%),
+        url('assets/shl-bg.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
     background-repeat: no-repeat;
+    min-height: 100vh;
 }
 body.league-allsvenskan {
-    /* Bytt bakgrundston (inte bara accent/glow) för HockeyAllsvenskan, så hela miljön
-       går i mörkgrönt istället för bara spotlights/kort-kanter. */
     --bg-color: #02120e;
     --bg-color-2: #04241c;
     --accent: var(--allsv-teal); --accent-2: var(--allsv-teal-2); --glow: var(--allsv-glow);
+    background-image:
+        linear-gradient(180deg, color-mix(in srgb, var(--bg-color) 45%, transparent) 0%, color-mix(in srgb, var(--bg-color) 82%, transparent) 100%),
+        url('assets/allsvenskan-bg.jpg');
 }
 a { color: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 header.top {
-    /* Fullskärms hero: hela arenafotot får ta plats (inte bara en smal remsa högst
-       upp), med logga, liga-växlare och flikar liggande direkt ovanpå bilden istället
-       för i en avgränsad "header-box". En mörk tonings-gradient ovanpå ger läsbarhet
-       och en mjuk nedtoning mot sidans --bg-color längst ner så övergången till
-       resten av sidan blir sömlös. Bytt per liga nedan (blått/grönt). */
-    display: flex; flex-direction: column; justify-content: space-between;
-    min-height: clamp(420px, 58vw, 680px);
-    background-image:
-        linear-gradient(180deg, rgba(2,6,14,0.08) 0%, rgba(2,6,14,0.4) 65%, var(--bg-color) 100%),
-        linear-gradient(0deg, color-mix(in srgb, var(--accent-2) 55%, transparent) 0%, transparent 40%),
-        url('assets/shl-bg.jpg');
-    background-size: cover, cover, cover;
-    background-position: center center, center bottom, center center;
-    background-repeat: no-repeat;
-    color: #fff; padding: 20px 0 0; position: relative; overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    border-bottom: 2px solid var(--glow);
-    transition: background-image 0.3s ease;
-}
-body.league-allsvenskan header.top {
-    background-image:
-        linear-gradient(180deg, rgba(1,12,9,0.10) 0%, rgba(1,12,9,0.5) 60%, var(--bg-color) 100%),
-        linear-gradient(0deg, color-mix(in srgb, var(--accent-2) 60%, transparent) 0%, transparent 45%),
-        url('assets/allsvenskan-bg.jpg');
-}
-header.top::before {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background:
-        radial-gradient(circle at 88% -30%, rgba(255,255,255,0.16), transparent 55%),
-        radial-gradient(circle at 8% 120%, rgba(255,255,255,0.08), transparent 45%);
+    /* Ingen egen bakgrund, ingen kant, ingen skugga — headern är helt transparent så
+       att sidans fasta bakgrundsfoto (satt på body ovan) syns rakt igenom den, utan
+       någon synlig linje eller övergång mellan header och resten av sidan. */
+    color: #fff; padding: 20px 0 6px; position: relative;
 }
 header.top .wrap { position: relative; }
 .top-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-bottom: 14px; }
@@ -378,7 +355,6 @@ footer { text-align: center; color: var(--text-muted); font-size: 12.5px; paddin
        164px ≈ +30%) eftersom datumtextens bredd vid 10px faktiskt överskrider
        den smala mobil-kolumnen — den bokstavliga "luftrums"-uträkningen från
        desktop går inte att återanvända rakt av här. */
-    header.top { min-height: 360px; }
     .game-row { grid-template-columns: 74px 1fr 62px; column-gap: 8px; }
     .game-date { font-size: 10px; }
     .team-row.home { left: 82px; }
